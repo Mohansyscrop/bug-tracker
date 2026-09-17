@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Users & Auth ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  globalRole   String   @default("STANDARD") @db.VarChar(30) // ADMIN | STANDARD
+  avatarUrl    String?  @db.VarChar(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  projectsCreated  Project[]       @relation("ProjectCreator")
+  projectMembers   ProjectMember[]
+  reportedBugs     Bug[]           @relation("BugReporter")
+  assignedBugs     Bug[]           @relation("BugAssignee")
+  comments         Comment[]
+  attachments      Attachment[]
+  activityLogs     ActivityLog[]
+  bugWatchers      BugWatcher[]
+  componentLead    Component[]     @relation("ComponentLead")
+  notifications    Notification[]
+  cyclesCreated    TestingCycle[]  @relation("CycleCreator")
+  testExecutions   TestExecution[] @relation("ExecutionTester")
+
+  @@index([email])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+// ── Projects ─────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  key         String   @unique @db.VarChar(10)  // e.g., PROJ for PROJ-101
+  description String?  @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  createdBy     User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  members       ProjectMember[]
+  milestones    Milestone[]
+  components    Component[]
+  requirements  Requirement[]
+  testingCycles TestingCycle[]
+  bugs          Bug[]
+
+  @@index([key])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  projectRole String   @db.VarChar(30) // PROJECT_LEAD | QA | FRONTEND_DEV | BACKEND_DEV | FULLSTACK_DEV | VIEWER | LEAD | DEV
+  createdAt   DateTime @default(now())
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// ── Requirements ─────────────────────────────────────────────
+
+model Requirement {
+  id          String    @id @default(uuid())
+  reqKey      String    @unique @db.VarChar(20) // e.g. REQ-001
+  projectId   String
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  status      String    @default("ACTIVE") @db.VarChar(30) // DRAFT | ACTIVE | IN_TESTING | COMPLETED
+  priority    String    @default("MEDIUM") @db.VarChar(20) // LOW | MEDIUM | HIGH | CRITICAL
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  testCases   TestCase[]
+  bugs        Bug[]
+
+  @@index([projectId])
+  @@map("requirements")
+}
+
+// ── Testing Cycles ───────────────────────────────────────────
+
+model TestingCycle {
+  id             String    @id @default(uuid())
+  projectId      String
+  name           String    @db.VarChar(150) // e.g. "Cycle 01 — Contact Form Initial Testing"
+  cycleNumber    Int       @default(1)
+  description    String?   @db.Text
+  scope          String?   @db.Text
+  type           String    @default("FUNCTIONAL") @db.VarChar(30) // INITIAL | FEATURE | REGRESSION | UAT | HOTFIX
+  status         String    @default("PLANNED") @db.VarChar(30) // PLANNED | IN_PROGRESS | BLOCKED | COMPLETED | CANCELLED
+  environment    String    @default("QA") @db.VarChar(50) // DEV | QA | STAGING | UAT | PROD
+  startDate      DateTime?
+  plannedEndDate DateTime?
+  completedAt    DateTime?
+  createdById    String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy      User            @relation("CycleCreator", fields: [createdById], references: [id])
+  testSuites     TestSuite[]
+  testExecutions TestExecution[]
+  bugs           Bug[]
+
+  @@index([projectId, status])
+  @@map("testing_cycles")
+}
+
+// ── Test Suites & Test Cases ─────────────────────────────────
+
+model TestSuite {
+  id             String    @id @default(uuid())
+  testingCycleId String
+  name           String    @db.VarChar(150)
+  description    String?   @db.Text
+  createdAt      DateTime  @default(now())
+
+  // Relations
+  testingCycle   TestingCycle @relation(fields: [testingCycleId], references: [id], onDelete: Cascade)
+  testCases      TestCase[]
+
+  @@index([testingCycleId])
+  @@map("test_suites")
+}
+
+model TestCase {
+  id             String    @id @default(uuid())
+  testCaseKey    String    @unique @db.VarChar(20) // e.g. TC-001
+  suiteId        String
+  requirementId  String?
+  title          String    @db.VarChar(255)
+  preconditions  String?   @db.Text
+  steps          String    @db.Text
+  expectedResult String    @db.Text
+  type           String    @default("FUNCTIONAL") @db.VarChar(30) // FUNCTIONAL | REGRESSION | UI_UX | SECURITY | PERFORMANCE | INTEGRATION
+  priority       String    @default("P2") @db.VarChar(20) // P1 | P2 | P3 | P4
+  status         String    @default("ACTIVE") @db.VarChar(30) // ACTIVE | DEPRECATED
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  suite          TestSuite       @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+  requirement    Requirement?    @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  executions     TestExecution[]
+  bugs           Bug[]
+
+  @@index([suiteId])
+  @@index([requirementId])
+  @@map("test_cases")
+}
+
+model TestExecution {
+  id             String    @id @default(uuid())
+  testingCycleId String
+  testCaseId     String
+  status         String    @default("NOT_RUN") @db.VarChar(30) // NOT_RUN | PASSED | FAILED | BLOCKED | SKIPPED
+  actualResult   String?   @db.Text
+  notes          String?   @db.Text
+  executedById   String?
+  executedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  testingCycle   TestingCycle @relation(fields: [testingCycleId], references: [id], onDelete: Cascade)
+  testCase       TestCase     @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  executedBy     User?        @relation("ExecutionTester", fields: [executedById], references: [id], onDelete: SetNull)
+  bugs           Bug[]
+
+  @@index([testingCycleId])
+  @@index([testCaseId])
+  @@map("test_executions")
+}
+
+// ── Milestones & Components ───────────────────────────────────
+
+model Milestone {
+  id          String    @id @default(uuid())
+  projectId   String
+  name        String    @db.VarChar(100)
+  versionCode String    @db.VarChar(50)
+  releaseDate DateTime?
+  status      String    @default("OPEN") @db.VarChar(30) // OPEN | FROZEN | RELEASED
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bugs             Bug[]   @relation("BugMilestone")
+  fixedInBugs      Bug[]   @relation("BugFixedInMilestone")
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+model Component {
+  id        String  @id @default(uuid())
+  projectId String
+  name      String  @db.VarChar(100)
+  leadId    String?
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lead    User?   @relation("ComponentLead", fields: [leadId], references: [id])
+  bugs    Bug[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@map("components")
+}
+
+// ── Bugs ─────────────────────────────────────────────────────
+
+model Bug {
+  id                   String    @id @default(uuid())
+  issueKey             String    @unique @db.VarChar(20) // e.g., PROJ-1024
+  projectId            String
+  componentId          String?
+  milestoneId          String?
+  fixedInMilestoneId   String?
+  title                String    @db.VarChar(255)
+  description          String    @db.Text
+  stepsToReproduce     String    @db.Text
+  expectedResult       String    @db.Text
+  actualResult         String    @db.Text
+  severity             String    @db.VarChar(20) // CRITICAL | HIGH | MEDIUM | LOW
+  priority             String    @default("P3") @db.VarChar(20) // P1 | P2 | P3 | P4
+  status               String    @default("NEW") @db.VarChar(30)
+  resolution           String?   @db.VarChar(50) // FIXED_VERIFIED | WONT_FIX | BY_DESIGN | DUPLICATE | CANNOT_REPRODUCE_ABANDONED
+  environment          String?   @db.VarChar(100) // DEV | QA | STAGING | UAT | PROD
+  reopenCount          Int       @default(0)
+  isRegression         Boolean   @default(false)
+  version              Int       @default(1) // Optimistic locking
+  reportedById         String
+  assignedToId         String?
+
+  // QA Testing Cycle & Area Architecture
+  bugArea              String    @default("FRONTEND") @db.VarChar(30) // FRONTEND | BACKEND | DATABASE | API | INTEGRATION | UI_UX | PERFORMANCE | SECURITY | REGRESSION
+  testingCycleId       String?
+  requirementId        String?
+  testCaseId           String?
+  testExecutionId      String?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  // Full-text search index (MySQL FULLTEXT)
+  @@fulltext([title, description, stepsToReproduce])
+
+  // Relations
+  project            Project        @relation(fields: [projectId], references: [id])
+  component          Component?     @relation(fields: [componentId], references: [id])
+  milestone          Milestone?     @relation("BugMilestone", fields: [milestoneId], references: [id])
+  fixedInMilestone   Milestone?     @relation("BugFixedInMilestone", fields: [fixedInMilestoneId], references: [id])
+  reportedBy         User           @relation("BugReporter", fields: [reportedById], references: [id])
+  assignedTo         User?          @relation("BugAssignee", fields: [assignedToId], references: [id])
+  testingCycle       TestingCycle?  @relation(fields: [testingCycleId], references: [id], onDelete: SetNull)
+  requirement        Requirement?   @relation(fields: [requirementId], references: [id], onDelete: SetNull)
+  testCase           TestCase?      @relation(fields: [testCaseId], references: [id], onDelete: SetNull)
+  testExecution      TestExecution? @relation(fields: [testExecutionId], references: [id], onDelete: SetNull)
+  watchers           BugWatcher[]
+  sourceLinks        BugLink[]      @relation("SourceBug")
+  targetLinks        BugLink[]      @relation("TargetBug")
+  comments           Comment[]
+  attachments        Attachment[]
+  activityLogs       ActivityLog[]
+
+  @@index([projectId, status])
+  @@index([projectId, severity])
+  @@index([assignedToId])
+  @@index([reportedById])
+  @@index([status])
+  @@index([bugArea])
+  @@index([testingCycleId])
+  @@index([requirementId])
+  @@index([deletedAt])
+  @@map("bugs")
+}
+
+model BugWatcher {
+  bugId  String
+  userId String
+
+  bug  Bug  @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([bugId, userId])
+  @@map("bug_watchers")
+}
+
+model BugLink {
+  id          String   @id @default(uuid())
+  sourceBugId String
+  targetBugId String
+  linkType    String   @db.VarChar(30) // DUPLICATE_OF | BLOCKS | BLOCKED_BY | RELATED_TO
+  createdAt   DateTime @default(now())
+
+  sourceBug Bug @relation("SourceBug", fields: [sourceBugId], references: [id], onDelete: Cascade)
+  targetBug Bug @relation("TargetBug", fields: [targetBugId], references: [id], onDelete: Cascade)
+
+  @@map("bug_links")
+}
+
+// ── Comments ─────────────────────────────────────────────────
+
+model Comment {
+  id           String    @id @default(uuid())
+  bugId        String
+  userId       String
+  bodyMarkdown String    @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  bug  Bug  @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([bugId])
+  @@map("comments")
+}
+
+// ── Attachments ──────────────────────────────────────────────
+
+model Attachment {
+  id            String   @id @default(uuid())
+  bugId         String
+  uploadedById  String
+  fileName      String   @db.VarChar(255)
+  fileSizeBytes BigInt
+  mimeType      String   @db.VarChar(100)
+  storageKey    String   @db.VarChar(500)
+  scanStatus    String   @default("PENDING") @db.VarChar(30) // PENDING | CLEAN | INFECTED
+  createdAt     DateTime @default(now())
+
+  bug        Bug  @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([bugId])
+  @@map("attachments")
+}
+
+// ── Activity Log ─────────────────────────────────────────────
+
+model ActivityLog {
+  id           String   @id @default(uuid())
+  bugId        String
+  userId       String
+  fieldChanged String   @db.VarChar(50)
+  oldValue     String?  @db.Text
+  newValue     String?  @db.Text
+  changedAt    DateTime @default(now())
+
+  bug  Bug  @relation(fields: [bugId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([bugId])
+  @@index([changedAt])
+  @@map("activity_logs")
+}
+
+// ── Notifications ─────────────────────────────────────────────
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String
+  type         String   @db.VarChar(50)
+  title        String   @db.VarChar(255)
+  body         String   @db.Text
+  bugId        String?
+  bugIssueKey  String?  @db.VarChar(20)
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ── Key Sequence (for issue key generation) ──────────────────
+
+model ProjectKeySequence {
+  projectKey String @id @db.VarChar(10)
+  lastSeq    Int    @default(0)
+
+  @@map("project_key_sequences")
+}
