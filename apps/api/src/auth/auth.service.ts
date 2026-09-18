@@ -46,6 +46,15 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findFirst({
       where: { email: dto.email, deletedAt: null },
+      include: {
+        projectMembers: {
+          select: {
+            projectId: true,
+            projectRole: true,
+            project: { select: { id: true, name: true, key: true } },
+          },
+        },
+      },
     });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
@@ -58,6 +67,7 @@ export class AuthService {
       email: user.email,
       globalRole: user.globalRole,
       createdAt: user.createdAt,
+      projectMembers: user.projectMembers,
     };
     const tokens = await this.generateTokens(user.id, user.email, user.globalRole);
     return { user: safeUser, ...tokens };
@@ -71,7 +81,20 @@ export class AuthService {
       });
       const user = await this.prisma.user.findFirst({
         where: { id: payload.sub, deletedAt: null },
-        select: { id: true, name: true, email: true, globalRole: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          globalRole: true,
+          createdAt: true,
+          projectMembers: {
+            select: {
+              projectId: true,
+              projectRole: true,
+              project: { select: { id: true, name: true, key: true } },
+            },
+          },
+        },
       });
       if (!user) throw new UnauthorizedException('User not found');
       const tokens = await this.generateTokens(user.id, user.email, user.globalRole);
@@ -90,6 +113,13 @@ export class AuthService {
         email: true,
         globalRole: true,
         createdAt: true,
+        projectMembers: {
+          select: {
+            projectId: true,
+            projectRole: true,
+            project: { select: { id: true, name: true, key: true } },
+          },
+        },
       },
     });
   }

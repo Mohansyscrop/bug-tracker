@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { testingCyclesApi, projectsApi } from '@/lib/api';
 import Link from 'next/link';
@@ -348,131 +349,127 @@ export default function TestingCyclesPage() {
         )}
 
         {/* Modal: Create Testing Cycle */}
-        {showCreateModal && (
-          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Plan New Testing Cycle
-                </h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModal(false)}>
-                  <X size={16} />
-                </button>
-              </div>
-
-              {createError && (
-                <div style={{
-                  background: 'var(--color-danger-dim)',
-                  border: '1px solid var(--color-danger-border)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '10px 14px',
-                  color: 'var(--color-danger)',
-                  fontSize: '12.5px',
-                  marginBottom: '14px',
-                }}>
-                  {createError}
-                </div>
-              )}
-
-              <form onSubmit={handleCreateCycle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Project *</label>
-                  <select
-                    className="select"
-                    value={form.projectId}
-                    onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
-                    required
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.key})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label">Cycle Name *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g., Sprint 24 — WhatsApp Integration & Smoke"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label className="label">Cycle Type</label>
-                    <select
-                      className="select"
-                      value={form.type}
-                      onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                    >
-                      <option value="FEATURE">Feature Testing</option>
-                      <option value="REGRESSION">Regression Run</option>
-                      <option value="SMOKE">Smoke Verification</option>
-                      <option value="RELEASE">Release Candidate</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label">Target Environment</label>
-                    <select
-                      className="select"
-                      value={form.environment}
-                      onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
-                    >
-                      <option value="QA">QA Build</option>
-                      <option value="STAGING">Staging</option>
-                      <option value="UAT">UAT</option>
-                      <option value="PRODUCTION">Production</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Scope Summary</label>
-                  <textarea
-                    className="textarea"
-                    rows={2}
-                    placeholder="Brief description of requirements, components, and regressions in scope..."
-                    value={form.scope}
-                    onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value }))}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label className="label">Start Date</label>
-                    <input
-                      type="date"
-                      className="input"
-                      value={form.startDate}
-                      onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Planned End Date</label>
-                    <input
-                      type="date"
-                      className="input"
-                      value={form.plannedEndDate}
-                      onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={creating || !form.name.trim()}>
-                    {creating ? 'Creating...' : 'Create Cycle'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="540px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+            <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              Plan New Testing Cycle
+            </h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModal(false)}>
+              <X size={16} />
+            </button>
           </div>
-        )}
+
+          {createError && (
+            <div style={{
+              background: 'var(--color-danger-dim)',
+              border: '1px solid var(--color-danger-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '10px 14px',
+              color: 'var(--color-danger)',
+              fontSize: '12.5px',
+              marginBottom: '16px',
+            }}>
+              {createError}
+            </div>
+          )}
+
+          <form onSubmit={handleCreateCycle} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label className="label">Project *</label>
+              <select
+                className="select"
+                value={form.projectId}
+                onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
+                required
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.key})</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Cycle Name *</label>
+              <input
+                className="input"
+                placeholder="e.g., Sprint 24 — WhatsApp Integration & Smoke"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="label">Cycle Type</label>
+                <select
+                  className="select"
+                  value={form.type}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                >
+                  <option value="FEATURE">Feature Testing</option>
+                  <option value="REGRESSION">Regression Run</option>
+                  <option value="SMOKE">Smoke Verification</option>
+                  <option value="RELEASE">Release Candidate</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Target Environment</label>
+                <select
+                  className="select"
+                  value={form.environment}
+                  onChange={(e) => setForm((f) => ({ ...f, environment: e.target.value }))}
+                >
+                  <option value="QA">QA Build</option>
+                  <option value="STAGING">Staging</option>
+                  <option value="UAT">UAT</option>
+                  <option value="PRODUCTION">Production</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Scope Summary</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Brief description of requirements, components, and regressions in scope..."
+                value={form.scope}
+                onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="label">Start Date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={form.startDate}
+                  onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label">Planned End Date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={form.plannedEndDate}
+                  onChange={(e) => setForm((f) => ({ ...f, plannedEndDate: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={creating || !form.name.trim()}>
+                {creating ? 'Creating...' : 'Create Cycle'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </AppLayout>
   );

@@ -219,6 +219,8 @@ export class BugsService {
         throw new ForbiddenException('You are not a member of this project');
       }
       role = member.projectRole;
+      if (role.endsWith('_DEV') || role === 'DEVELOPER') role = 'DEV';
+      if (role === 'PROJECT_LEAD') role = 'LEAD';
     }
 
     // Validate transition

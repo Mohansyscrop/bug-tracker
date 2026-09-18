@@ -235,38 +235,50 @@ export default function LoginPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => fillDemo('admin@bugtracker.local', 'Admin@123456')}
+                  id="demo-dev"
+                  onClick={() => fillDemo('mohan@gmail.com', 'Mohan@12')}
                   className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '5px 8px' }}
+                  style={{
+                    fontSize: '11px',
+                    justifyContent: 'flex-start',
+                    padding: '6px 9px',
+                    border: '1px solid rgba(99, 102, 241, 0.4)',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    fontWeight: '700',
+                    color: '#6366f1',
+                  }}
                 >
-                  <ShieldCheck size={12} style={{ color: 'var(--color-primary)' }} />
-                  <span>Admin User</span>
+                  <Laptop size={13} style={{ color: '#6366f1' }} />
+                  <span>Developer (Mohan)</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillDemo('bob@bugtracker.local', 'Dev@123456')}
+                  id="demo-admin"
+                  onClick={() => fillDemo('admin@gmail.com', 'Admin@12')}
                   className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '5px 8px' }}
+                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '6px 9px' }}
                 >
-                  <CheckCircle2 size={12} style={{ color: 'var(--color-success)' }} />
+                  <ShieldCheck size={13} style={{ color: 'var(--color-primary)' }} />
+                  <span>Admin (System)</span>
+                </button>
+                <button
+                  type="button"
+                  id="demo-qa"
+                  onClick={() => fillDemo('bala@gmail.com', 'Mohan@12')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '6px 9px' }}
+                >
+                  <CheckCircle2 size={13} style={{ color: 'var(--color-success)' }} />
                   <span>QA Engineer</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => fillDemo('alice@bugtracker.local', 'Dev@123456')}
+                  id="demo-lead"
+                  onClick={() => fillDemo('pm@gmail.com', 'Mohan@12')}
                   className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '5px 8px' }}
+                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '6px 9px' }}
                 >
-                  <Laptop size={12} style={{ color: 'var(--color-info)' }} />
-                  <span>Developer</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fillDemo('carol@bugtracker.local', 'Dev@123456')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '11px', justifyContent: 'flex-start', padding: '5px 8px' }}
-                >
-                  <Bug size={12} style={{ color: 'var(--color-warning)' }} />
+                  <Bug size={13} style={{ color: 'var(--color-warning)' }} />
                   <span>Project Lead</span>
                 </button>
               </div>

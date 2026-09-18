@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { usersApi, projectsApi, bugsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
@@ -792,135 +793,131 @@ export default function AdminPage() {
         )}
 
         {/* Create User Modal with Role Assignment */}
-        {showCreateModal && (
-          <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-            <div className="modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Create New User & Assign Role
-                </h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModal(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Full Name *</label>
-                  <input
-                    id="new-user-name"
-                    className="input"
-                    placeholder="e.g. David Miller"
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Email Address *</label>
-                  <input
-                    id="new-user-email"
-                    type="email"
-                    className="input"
-                    placeholder="david@company.com"
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Password *</label>
-                  <input
-                    id="new-user-password"
-                    type="password"
-                    className="input"
-                    placeholder="At least 6 characters"
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-                    required
-                    minLength={6}
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Assigned Role *</label>
-                  <select
-                    id="new-user-role-select"
-                    className="select"
-                    value={createForm.assignedRole}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, assignedRole: e.target.value }))}
-                  >
-                    <option value="DEV">Developer — Assigned defects, moves to in-progress & fixes</option>
-                    <option value="QA">QA / Tester — Reports bugs, verifies builds, closes defects</option>
-                    <option value="LEAD">Project Lead — Manages team, milestones & state triage</option>
-                    <option value="VIEWER">Viewer — Read-only project & ticket access</option>
-                    <option value="ADMIN">System Administrator — Global unrestricted governance</option>
-                  </select>
-                </div>
-
-                {createForm.assignedRole !== 'ADMIN' && projects.length > 0 && (
-                  <div className="card-subtle">
-                    <label className="label" style={{ marginBottom: '8px' }}>Project Assignment</label>
-                    <div style={{ marginBottom: '10px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={createForm.assignToAllProjects}
-                          onChange={(e) => setCreateForm((f) => ({ ...f, assignToAllProjects: e.target.checked }))}
-                          style={{ accentColor: 'var(--color-primary)' }}
-                        />
-                        Assign this role across all active projects ({projects.length})
-                      </label>
-                    </div>
-
-                    {!createForm.assignToAllProjects && (
-                      <select
-                        className="select"
-                        value={createForm.selectedProjectId}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, selectedProjectId: e.target.value }))}
-                      >
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} ({p.key})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                )}
-
-                {createError && (
-                  <div style={{
-                    background: 'var(--color-danger-dim)',
-                    border: '1px solid var(--color-danger-border)',
-                    color: 'var(--color-danger)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '10px 12px',
-                    fontSize: '12.5px',
-                  }}>
-                    {createError}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateModal(false)}>
-                    Cancel
-                  </button>
-                  <button id="confirm-create-user-btn" type="submit" className="btn btn-primary btn-sm" disabled={creating}>
-                    {creating ? 'Creating...' : 'Create User'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} maxWidth="520px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
+              Create New User & Assign Role
+            </h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModal(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+
+          <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Full Name *</label>
+              <input
+                id="new-user-name"
+                className="input"
+                placeholder="e.g. David Miller"
+                value={createForm.name}
+                onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Email Address *</label>
+              <input
+                id="new-user-email"
+                type="email"
+                className="input"
+                placeholder="david@company.com"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Password *</label>
+              <input
+                id="new-user-password"
+                type="password"
+                className="input"
+                placeholder="At least 6 characters"
+                value={createForm.password}
+                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label className="label">Assigned Role *</label>
+              <select
+                id="new-user-role-select"
+                className="select"
+                value={createForm.assignedRole}
+                onChange={(e) => setCreateForm((f) => ({ ...f, assignedRole: e.target.value }))}
+              >
+                <option value="DEV">Developer — Assigned defects, moves to in-progress & fixes</option>
+                <option value="QA">QA / Tester — Reports bugs, verifies builds, closes defects</option>
+                <option value="LEAD">Project Lead — Manages team, milestones & state triage</option>
+                <option value="VIEWER">Viewer — Read-only project & ticket access</option>
+                <option value="ADMIN">System Administrator — Global unrestricted governance</option>
+              </select>
+            </div>
+
+            {createForm.assignedRole !== 'ADMIN' && projects.length > 0 && (
+              <div className="card-subtle">
+                <label className="label" style={{ marginBottom: '8px' }}>Project Assignment</label>
+                <div style={{ marginBottom: '10px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={createForm.assignToAllProjects}
+                      onChange={(e) => setCreateForm((f) => ({ ...f, assignToAllProjects: e.target.checked }))}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    Assign this role across all active projects ({projects.length})
+                  </label>
+                </div>
+
+                {!createForm.assignToAllProjects && (
+                  <select
+                    className="select"
+                    value={createForm.selectedProjectId}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, selectedProjectId: e.target.value }))}
+                  >
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.key})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {createError && (
+              <div style={{
+                background: 'var(--color-danger-dim)',
+                border: '1px solid var(--color-danger-border)',
+                color: 'var(--color-danger)',
+                borderRadius: 'var(--radius-md)',
+                padding: '10px 12px',
+                fontSize: '12.5px',
+              }}>
+                {createError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </button>
+              <button id="confirm-create-user-btn" type="submit" className="btn btn-primary btn-sm" disabled={creating}>
+                {creating ? 'Creating...' : 'Create User'}
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Edit User Roles & Permissions Modal */}
-        {editingUser && (
-          <div className="modal-overlay" onClick={() => setEditingUser(null)}>
-            <div className="modal" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
+        <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} maxWidth="560px">
+          {editingUser && (
+            <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
                   <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Edit Roles & Permissions</h2>
@@ -1017,9 +1014,9 @@ export default function AdminPage() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </Modal>
       </div>
     </AppLayout>
   );

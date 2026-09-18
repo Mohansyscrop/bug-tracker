@@ -21,7 +21,64 @@ import {
   ShieldAlert,
   Calendar,
   ExternalLink,
+  ChevronRight,
+  TrendingUp,
+  Clock,
+  User as UserIcon,
+  Search,
 } from 'lucide-react';
+
+function timeAgo(dateString?: string): string {
+  if (!dateString) return 'recently';
+  const date = new Date(dateString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function getAreaBadgeStyle(area?: string) {
+  switch (area) {
+    case 'FRONTEND':
+    case 'UI_UX':
+      return { bg: '#eef2ff', text: '#4338ca', border: 'rgba(99, 102, 241, 0.25)' };
+    case 'BACKEND':
+    case 'API':
+      return { bg: '#eff6ff', text: '#1d4ed8', border: 'rgba(59, 130, 246, 0.25)' };
+    case 'DATABASE':
+      return { bg: '#faf5ff', text: '#7e22ce', border: 'rgba(168, 85, 247, 0.25)' };
+    case 'REGRESSION':
+      return { bg: '#fee2e2', text: '#b91c1c', border: 'rgba(239, 68, 68, 0.25)' };
+    default:
+      return { bg: '#f1f5f9', text: '#334155', border: '#cbd5e1' };
+  }
+}
+
+function getSeverityDotColor(sev?: string) {
+  switch (sev?.toUpperCase()) {
+    case 'CRITICAL': return '#ef4444';
+    case 'HIGH': return '#f97316';
+    case 'MEDIUM': return '#3b82f6';
+    default: return '#94a3b8';
+  }
+}
+
+function getStatusDotColor(status?: string) {
+  switch (status?.toUpperCase()) {
+    case 'FIXED': return '#10b981';
+    case 'IN_PROGRESS': return '#8b5cf6';
+    case 'RETEST': return '#f97316';
+    case 'REOPENED':
+    case 'REJECTED': return '#ef4444';
+    case 'ASSIGNED': return '#3b82f6';
+    default: return '#64748b';
+  }
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -102,9 +159,9 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in" style={{ maxWidth: '1240px', margin: '0 auto' }}>
+      <div className="animate-fade-in" style={{ maxWidth: '1280px', margin: '0 auto' }}>
         {/* Workspace Page Header */}
-        <div className="page-header" style={{ marginBottom: '22px' }}>
+        <div className="page-header">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <h1 className="page-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -114,29 +171,29 @@ export default function DashboardPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                padding: '3px 8px',
+                padding: '3px 9px',
                 borderRadius: '999px',
                 fontSize: '11px',
-                fontWeight: '700',
-                background: 'rgba(16, 185, 129, 0.12)',
-                color: '#059669',
+                fontWeight: '750',
+                background: '#d1fae5',
+                color: '#047857',
                 border: '1px solid rgba(16, 185, 129, 0.3)',
               }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-                LIVE
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+                ACTIVE
               </span>
             </div>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '2px' }}>
-              Cycle-based test execution, scenario coverage, and unified defect triage across technical domains.
+            <p style={{ color: '#64748b', fontSize: '13.5px', marginTop: '3px', fontWeight: '500' }}>
+              Real-time test execution metrics, scenario triage, and engineering defect workbench.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <Link href="/testing-cycles" className="btn btn-secondary">
-              <RotateCcw size={14} />
+              <RotateCcw size={15} />
               <span>Testing Cycles</span>
             </Link>
             <Link href="/bugs/new" className="btn btn-primary" id="create-bug-btn">
-              <PlusCircle size={15} />
+              <PlusCircle size={16} />
               <span>Report Defect</span>
             </Link>
           </div>
@@ -148,23 +205,23 @@ export default function DashboardPage() {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '12px',
-          background: 'var(--color-surface)',
-          padding: '10px 14px',
+          gap: '14px',
+          background: '#ffffff',
+          padding: '12px 18px',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-card)',
-          marginBottom: '20px',
+          marginBottom: '24px',
         }}>
           {/* Project Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '650' }}>
               Project:
             </span>
             <select
               id="dashboard-project-select"
               className="select"
-              style={{ minWidth: '220px', fontSize: '13px', padding: '6px 30px 6px 10px' }}
+              style={{ minWidth: '240px', fontSize: '13px', padding: '7px 32px 7px 12px' }}
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
             >
@@ -180,8 +237,8 @@ export default function DashboardPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            background: 'var(--color-surface-2)',
-            padding: '3px',
+            background: '#f1f5f9',
+            padding: '4px',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--color-border)',
           }}>
@@ -189,30 +246,32 @@ export default function DashboardPage() {
               onClick={() => setViewMode('QA')}
               className={`btn btn-sm ${viewMode === 'QA' ? 'btn-primary' : 'btn-ghost'}`}
               style={{
-                fontSize: '12px',
-                border: viewMode === 'QA' ? 'none' : 'transparent',
-                fontWeight: viewMode === 'QA' ? '600' : '500',
+                fontSize: '12.5px',
+                fontWeight: viewMode === 'QA' ? '700' : '600',
+                padding: '6px 14px',
               }}
             >
-              <Activity size={13} />
+              <Activity size={14} />
               <span>QA Testing Hub</span>
             </button>
             <button
               onClick={() => setViewMode('FRONTEND')}
               className={`btn btn-sm ${viewMode === 'FRONTEND' ? 'btn-primary' : 'btn-ghost'}`}
               style={{
-                fontSize: '12px',
-                border: viewMode === 'FRONTEND' ? 'none' : 'transparent',
-                fontWeight: viewMode === 'FRONTEND' ? '600' : '500',
+                fontSize: '12.5px',
+                fontWeight: viewMode === 'FRONTEND' ? '700' : '600',
+                padding: '6px 14px',
               }}
             >
-              <Laptop size={13} />
+              <Laptop size={14} />
               <span>Frontend Dev</span>
               <span style={{
-                background: viewMode === 'FRONTEND' ? 'rgba(255,255,255,0.25)' : 'var(--color-surface-3)',
-                padding: '0 5px',
+                background: viewMode === 'FRONTEND' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: viewMode === 'FRONTEND' ? '#ffffff' : '#475569',
+                padding: '1px 6px',
                 borderRadius: '999px',
                 fontSize: '10.5px',
+                fontWeight: '750',
               }}>
                 {myFrontendBugs.length}
               </span>
@@ -221,18 +280,20 @@ export default function DashboardPage() {
               onClick={() => setViewMode('BACKEND')}
               className={`btn btn-sm ${viewMode === 'BACKEND' ? 'btn-primary' : 'btn-ghost'}`}
               style={{
-                fontSize: '12px',
-                border: viewMode === 'BACKEND' ? 'none' : 'transparent',
-                fontWeight: viewMode === 'BACKEND' ? '600' : '500',
+                fontSize: '12.5px',
+                fontWeight: viewMode === 'BACKEND' ? '700' : '600',
+                padding: '6px 14px',
               }}
             >
-              <Server size={13} />
+              <Server size={14} />
               <span>Backend & API</span>
               <span style={{
-                background: viewMode === 'BACKEND' ? 'rgba(255,255,255,0.25)' : 'var(--color-surface-3)',
-                padding: '0 5px',
+                background: viewMode === 'BACKEND' ? 'rgba(255,255,255,0.25)' : '#e2e8f0',
+                color: viewMode === 'BACKEND' ? '#ffffff' : '#475569',
+                padding: '1px 6px',
                 borderRadius: '999px',
                 fontSize: '10.5px',
+                fontWeight: '750',
               }}>
                 {myBackendBugs.length}
               </span>
@@ -244,41 +305,95 @@ export default function DashboardPage() {
         {/* VIEW 1: QA TESTING & QUALITY VIEW                       */}
         {/* ═══════════════════════════════════════════════════════ */}
         {viewMode === 'QA' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             {/* QA Test Execution Breakdown Metrics Strip */}
             <div className="stats-grid">
-              <div className="stat-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                    <Layers size={20} />
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#4f46e5',
+                    background: '#eef2ff',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                  }}>
+                    Scope
+                  </span>
+                </div>
+                <div>
                   <div className="stat-value">{qaStats.total}</div>
-                  <Layers size={18} style={{ color: 'var(--color-text-faint)' }} />
+                  <div className="stat-label">Total Test Scenarios</div>
                 </div>
-                <div className="stat-label">Total Test Scenarios</div>
               </div>
 
-              <div className="stat-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="stat-value" style={{ color: 'var(--color-success)' }}>{qaStats.passed}</div>
-                  <CheckCircle2 size={18} style={{ color: 'var(--color-success)' }} />
+              <div className="stat-card" style={{ '--stat-accent': '#10b981' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '750',
+                    color: '#059669',
+                    background: '#d1fae5',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                  }}>
+                    {qaStats.passRate}% Rate
+                  </span>
                 </div>
-                <div className="stat-label">Passed ({qaStats.passRate}%)</div>
+                <div>
+                  <div className="stat-value" style={{ color: '#059669' }}>{qaStats.passed}</div>
+                  <div className="stat-label">Passed Tests</div>
+                </div>
               </div>
 
-              <div className="stat-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="stat-value" style={{ color: 'var(--color-danger)' }}>{qaStats.failed}</div>
-                  <XCircle size={18} style={{ color: 'var(--color-danger)' }} />
+              <div className="stat-card" style={{ '--stat-accent': '#ef4444' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                    <XCircle size={20} />
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#dc2626',
+                    background: '#fee2e2',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                  }}>
+                    Action Needed
+                  </span>
                 </div>
-                <div className="stat-label">Failed Scenarios</div>
+                <div>
+                  <div className="stat-value" style={{ color: '#dc2626' }}>{qaStats.failed}</div>
+                  <div className="stat-label">Failed Scenarios</div>
+                </div>
               </div>
 
-              <div className="stat-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="stat-value" style={{ color: 'var(--color-warning)' }}>{qaStats.blocked}</div>
-                  <AlertTriangle size={18} style={{ color: 'var(--color-warning)' }} />
+              <div className="stat-card" style={{ '--stat-accent': '#f59e0b' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+                    <AlertTriangle size={20} />
+                  </div>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#d97706',
+                    background: '#fef3c7',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                  }}>
+                    Impediments
+                  </span>
                 </div>
-                <div className="stat-label">Blocked Scenarios</div>
+                <div>
+                  <div className="stat-value" style={{ color: '#d97706' }}>{qaStats.blocked}</div>
+                  <div className="stat-label">Blocked Scenarios</div>
+                </div>
               </div>
             </div>
 
@@ -287,35 +402,40 @@ export default function DashboardPage() {
               {/* Technical Bug Area Breakdown */}
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                    Defects by Technical Area
-                  </h3>
-                  <Link href="/bugs" style={{ fontSize: '12px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '600' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: '#0f172a' }}>
+                      Defects by Technical Domain
+                    </h3>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>Distribution of active issues across codebase</p>
+                  </div>
+                  <Link href="/bugs" style={{ fontSize: '12.5px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '700' }}>
                     View All →
                   </Link>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                   {[
-                    { area: 'FRONTEND', label: 'Frontend UI', count: bugsByArea.FRONTEND || 0, color: 'var(--color-primary)' },
-                    { area: 'BACKEND', label: 'Backend Logic', count: bugsByArea.BACKEND || 0, color: '#2563eb' },
-                    { area: 'DATABASE', label: 'Database', count: bugsByArea.DATABASE || 0, color: '#7c3aed' },
-                    { area: 'API', label: 'REST API', count: bugsByArea.API || 0, color: '#0d9488' },
-                    { area: 'INTEGRATION', label: 'Integration', count: bugsByArea.INTEGRATION || 0, color: '#ea580c' },
-                    { area: 'REGRESSION', label: 'Regression', count: bugsByArea.REGRESSION || 0, color: 'var(--color-danger)' },
+                    { area: 'FRONTEND', label: 'Frontend UI', count: bugsByArea.FRONTEND || 0, color: '#4f46e5', bg: '#eef2ff' },
+                    { area: 'BACKEND', label: 'Backend Logic', count: bugsByArea.BACKEND || 0, color: '#0284c7', bg: '#e0f2fe' },
+                    { area: 'DATABASE', label: 'Database', count: bugsByArea.DATABASE || 0, color: '#7c3aed', bg: '#f3e8ff' },
+                    { area: 'API', label: 'REST API', count: bugsByArea.API || 0, color: '#0d9488', bg: '#ccfbf1' },
+                    { area: 'INTEGRATION', label: 'Integration', count: bugsByArea.INTEGRATION || 0, color: '#ea580c', bg: '#ffedd5' },
+                    { area: 'REGRESSION', label: 'Regression', count: bugsByArea.REGRESSION || 0, color: '#dc2626', bg: '#fee2e2' },
                   ].map((item) => (
                     <div
                       key={item.area}
                       style={{
-                        background: 'var(--color-surface-2)',
+                        background: '#ffffff',
                         border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-md)',
-                        padding: '12px 10px',
+                        padding: '14px 12px',
                         textAlign: 'center',
+                        boxShadow: 'var(--shadow-xs)',
+                        transition: 'transform var(--transition-fast), border-color var(--transition-fast)',
                       }}
                     >
-                      <div style={{ fontSize: '20px', fontWeight: '800', color: item.color }}>{item.count}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: '500' }}>
+                      <div style={{ fontSize: '22px', fontWeight: '800', color: item.color, lineHeight: 1.1 }}>{item.count}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontWeight: '650' }}>
                         {item.label}
                       </div>
                     </div>
@@ -325,51 +445,60 @@ export default function DashboardPage() {
 
               {/* QA Retest & Quality Queue */}
               <div className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: '#0f172a' }}>
                       Pending QA Retest Queue
                     </h3>
-                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                      Bugs fixed by developers requiring verification.
+                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      Defects resolved by developers awaiting verification.
                     </p>
                   </div>
-                  <span className="badge" style={{ background: 'var(--color-warning-dim)', color: 'var(--color-warning)', border: '1px solid var(--color-warning-border)', fontWeight: '700' }}>
+                  <span style={{
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    fontWeight: '750',
+                    fontSize: '11px',
+                    padding: '3px 9px',
+                    borderRadius: '999px',
+                  }}>
                     {qualityAlerts.pendingRetest} Ready
                   </span>
                 </div>
 
                 {retestBugs.length === 0 ? (
-                  <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                    <CheckCircle2 size={24} style={{ color: 'var(--color-success)', margin: '0 auto 6px', display: 'block' }} />
+                  <div style={{ padding: '42px 0', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+                    <CheckCircle2 size={28} style={{ color: '#10b981', margin: '0 auto 8px', display: 'block' }} />
                     No defects currently waiting for QA retest.
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {retestBugs.map((bug) => (
                       <div
                         key={bug.id}
                         style={{
-                          background: 'var(--color-surface-2)',
+                          background: '#ffffff',
                           border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-sm)',
-                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '12px 14px',
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           gap: '12px',
+                          boxShadow: 'var(--shadow-xs)',
                         }}
                       >
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Link href={`/bugs/${bug.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)', fontSize: '12px', textDecoration: 'none' }}>
-                              {bug.issueKey}
-                            </Link>
-                            <span className="area-pill" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="ticket-badge">
+                              #{bug.issueKey}
+                            </span>
+                            <span className="area-pill">
                               {bug.bugArea}
                             </span>
                           </div>
-                          <div style={{ fontSize: '12.5px', color: 'var(--color-text)', marginTop: '2px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '13px', color: '#0f172a', marginTop: '4px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {bug.title}
                           </div>
                         </div>
@@ -377,11 +506,12 @@ export default function DashboardPage() {
                           href={`/bugs/${bug.id}`}
                           className="btn btn-sm"
                           style={{
-                            background: 'var(--color-warning-dim)',
-                            color: 'var(--color-warning)',
-                            border: '1px solid var(--color-warning-border)',
-                            fontSize: '11px',
-                            padding: '4px 9px',
+                            background: '#fef3c7',
+                            color: '#b45309',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            fontSize: '11.5px',
+                            fontWeight: '700',
+                            padding: '5px 12px',
                             flexShrink: 0,
                           }}
                         >
@@ -400,50 +530,106 @@ export default function DashboardPage() {
         {/* VIEW 2: FRONTEND DEVELOPER VIEW                         */}
         {/* ═══════════════════════════════════════════════════════ */}
         {viewMode === 'FRONTEND' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             <div className="card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Laptop size={18} style={{ color: 'var(--color-primary)' }} />
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Frontend Developer Workbench
-                </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: '#eef2ff',
+                  color: '#4f46e5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Laptop size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: '#0f172a' }}>
+                    Frontend Developer Workbench
+                  </h2>
+                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                    Assigned client-side defects, UI/UX issues, and component flow breakages.
+                  </p>
+                </div>
               </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                Assigned client-side defects, UI/UX issues, and component flow breakages.
-              </p>
             </div>
 
             <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-value">{myFrontendBugs.length}</div>
-                <div className="stat-label">Assigned Frontend Bugs</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: 'var(--color-primary)' }}>
-                  {myFrontendBugs.filter((b) => b.status === 'IN_PROGRESS').length}
+              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                    <Bug size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>
+                    Active Queue
+                  </span>
                 </div>
-                <div className="stat-label">In Progress</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: 'var(--color-danger)' }}>
-                  {myFrontendBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length}
+                <div>
+                  <div className="stat-value">{myFrontendBugs.length}</div>
+                  <div className="stat-label">Assigned Frontend Bugs</div>
                 </div>
-                <div className="stat-label">Critical / P1</div>
               </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: 'var(--color-success)' }}>
-                  {myFrontendBugs.filter((b) => b.status === 'FIXED').length}
+
+              <div className="stat-card" style={{ '--stat-accent': '#0284c7' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                    <Activity size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '999px' }}>
+                    In Flight
+                  </span>
                 </div>
-                <div className="stat-label">Awaiting QA Retest</div>
+                <div>
+                  <div className="stat-value" style={{ color: '#0284c7' }}>
+                    {myFrontendBugs.filter((b) => b.status === 'IN_PROGRESS').length}
+                  </div>
+                  <div className="stat-label">In Progress</div>
+                </div>
+              </div>
+
+              <div className="stat-card" style={{ '--stat-accent': '#ef4444' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                    <ShieldAlert size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', background: '#fee2e2', padding: '2px 8px', borderRadius: '999px' }}>
+                    Urgent
+                  </span>
+                </div>
+                <div>
+                  <div className="stat-value" style={{ color: '#dc2626' }}>
+                    {myFrontendBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length}
+                  </div>
+                  <div className="stat-label">Critical / P1</div>
+                </div>
+              </div>
+
+              <div className="stat-card" style={{ '--stat-accent': '#10b981' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#059669', background: '#d1fae5', padding: '2px 8px', borderRadius: '999px' }}>
+                    Ready
+                  </span>
+                </div>
+                <div>
+                  <div className="stat-value" style={{ color: '#059669' }}>
+                    {myFrontendBugs.filter((b) => b.status === 'FIXED').length}
+                  </div>
+                  <div className="stat-label">Awaiting QA Retest</div>
+                </div>
               </div>
             </div>
 
             <div className="card">
-              <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text)' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: '#0f172a' }}>
                 My Assigned Frontend Tickets
               </h3>
               {myFrontendBugs.length === 0 ? (
-                <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                <div style={{ padding: '42px 0', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
                   No frontend bugs currently assigned to you!
                 </div>
               ) : (
@@ -457,30 +643,39 @@ export default function DashboardPage() {
                         <th>Priority</th>
                         <th>Status</th>
                         <th>Cycle</th>
-                        <th>Action</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {myFrontendBugs.map((bug) => (
                         <tr key={bug.id}>
                           <td>
-                            <Link href={`/bugs/${bug.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)', textDecoration: 'none' }}>
-                              {bug.issueKey}
+                            <Link href={`/bugs/${bug.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
+                              #{bug.issueKey}
                             </Link>
                           </td>
-                          <td style={{ maxWidth: '300px' }}>
-                            <Link href={`/bugs/${bug.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '500' }}>
+                          <td style={{ maxWidth: '320px' }}>
+                            <Link href={`/bugs/${bug.id}`} style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600' }}>
                               {bug.title}
                             </Link>
                           </td>
                           <td><span className={`badge badge-${bug.severity.toLowerCase()}`}>{bug.severity}</span></td>
                           <td><span className={`badge badge-${bug.priority.toLowerCase()}`}>{bug.priority}</span></td>
-                          <td><span className={`badge badge-status-${bug.status.toLowerCase().replace(/_/g, '-')}`}>{bug.status.replace(/_/g, ' ')}</span></td>
-                          <td style={{ fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
+                          <td>
+                            <span className="status-pill" style={{
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #e2e8f0',
+                            }}>
+                              <span className="status-dot" style={{ background: getStatusDotColor(bug.status) }} />
+                              {bug.status.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '12px', color: '#64748b' }}>
                             {bug.testingCycle?.name || '—'}
                           </td>
-                          <td>
-                            <Link href={`/bugs/${bug.id}`} className="btn btn-secondary btn-sm" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                          <td style={{ textAlign: 'right' }}>
+                            <Link href={`/bugs/${bug.id}`} className="btn btn-secondary btn-sm" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                               Work on Fix →
                             </Link>
                           </td>
@@ -498,50 +693,106 @@ export default function DashboardPage() {
         {/* VIEW 3: BACKEND DEVELOPER VIEW                          */}
         {/* ═══════════════════════════════════════════════════════ */}
         {viewMode === 'BACKEND' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div className="card" style={{ borderLeft: '4px solid #2563eb' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Server size={18} style={{ color: '#2563eb' }} />
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Backend & API Developer Workbench
-                </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+            <div className="card" style={{ borderLeft: '4px solid #0284c7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: '#e0f2fe',
+                  color: '#0284c7',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Server size={20} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: '#0f172a' }}>
+                    Backend & API Developer Workbench
+                  </h2>
+                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                    Server-side exceptions, REST API response defects, database query issues, and service integrations.
+                  </p>
+                </div>
               </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                Server-side exceptions, REST API response defects, database query issues, and service integrations.
-              </p>
             </div>
 
             <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-value">{myBackendBugs.length}</div>
-                <div className="stat-label">Assigned Backend Bugs</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: '#2563eb' }}>
-                  {myBackendBugs.filter((b) => b.status === 'IN_PROGRESS').length}
+              <div className="stat-card" style={{ '--stat-accent': '#0284c7' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                    <Server size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#0284c7', background: '#e0f2fe', padding: '2px 8px', borderRadius: '999px' }}>
+                    Assigned
+                  </span>
                 </div>
-                <div className="stat-label">In Progress</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: 'var(--color-danger)' }}>
-                  {myBackendBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length}
+                <div>
+                  <div className="stat-value">{myBackendBugs.length}</div>
+                  <div className="stat-label">Assigned Backend Bugs</div>
                 </div>
-                <div className="stat-label">Critical / 500 Errors</div>
               </div>
-              <div className="stat-card">
-                <div className="stat-value" style={{ color: 'var(--color-success)' }}>
-                  {myBackendBugs.filter((b) => b.status === 'FIXED').length}
+
+              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                    <Activity size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>
+                    Active
+                  </span>
                 </div>
-                <div className="stat-label">Awaiting QA Retest</div>
+                <div>
+                  <div className="stat-value" style={{ color: '#4f46e5' }}>
+                    {myBackendBugs.filter((b) => b.status === 'IN_PROGRESS').length}
+                  </div>
+                  <div className="stat-label">In Progress</div>
+                </div>
+              </div>
+
+              <div className="stat-card" style={{ '--stat-accent': '#ef4444' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                    <ShieldAlert size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', background: '#fee2e2', padding: '2px 8px', borderRadius: '999px' }}>
+                    Server Error
+                  </span>
+                </div>
+                <div>
+                  <div className="stat-value" style={{ color: '#dc2626' }}>
+                    {myBackendBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length}
+                  </div>
+                  <div className="stat-label">Critical / 500 Errors</div>
+                </div>
+              </div>
+
+              <div className="stat-card" style={{ '--stat-accent': '#10b981' } as React.CSSProperties}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="stat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#059669', background: '#d1fae5', padding: '2px 8px', borderRadius: '999px' }}>
+                    Ready
+                  </span>
+                </div>
+                <div>
+                  <div className="stat-value" style={{ color: '#059669' }}>
+                    {myBackendBugs.filter((b) => b.status === 'FIXED').length}
+                  </div>
+                  <div className="stat-label">Awaiting QA Retest</div>
+                </div>
               </div>
             </div>
 
             <div className="card">
-              <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text)' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: '#0f172a' }}>
                 My Assigned Backend Tickets
               </h3>
               {myBackendBugs.length === 0 ? (
-                <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                <div style={{ padding: '42px 0', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
                   No backend or API bugs currently assigned to you!
                 </div>
               ) : (
@@ -555,19 +806,19 @@ export default function DashboardPage() {
                         <th>Severity</th>
                         <th>Priority</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {myBackendBugs.map((bug) => (
                         <tr key={bug.id}>
                           <td>
-                            <Link href={`/bugs/${bug.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)', textDecoration: 'none' }}>
-                              {bug.issueKey}
+                            <Link href={`/bugs/${bug.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
+                              #{bug.issueKey}
                             </Link>
                           </td>
-                          <td style={{ maxWidth: '300px' }}>
-                            <Link href={`/bugs/${bug.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '500' }}>
+                          <td style={{ maxWidth: '320px' }}>
+                            <Link href={`/bugs/${bug.id}`} style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600' }}>
                               {bug.title}
                             </Link>
                           </td>
@@ -578,9 +829,18 @@ export default function DashboardPage() {
                           </td>
                           <td><span className={`badge badge-${bug.severity.toLowerCase()}`}>{bug.severity}</span></td>
                           <td><span className={`badge badge-${bug.priority.toLowerCase()}`}>{bug.priority}</span></td>
-                          <td><span className={`badge badge-status-${bug.status.toLowerCase().replace(/_/g, '-')}`}>{bug.status.replace(/_/g, ' ')}</span></td>
                           <td>
-                            <Link href={`/bugs/${bug.id}`} className="btn btn-secondary btn-sm" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                            <span className="status-pill" style={{
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #e2e8f0',
+                            }}>
+                              <span className="status-dot" style={{ background: getStatusDotColor(bug.status) }} />
+                              {bug.status.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <Link href={`/bugs/${bug.id}`} className="btn btn-secondary btn-sm" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                               Investigate Fix →
                             </Link>
                           </td>
@@ -594,60 +854,213 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Recent Defect Activity across project */}
-        <div className="card" style={{ marginTop: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-              Recent Defect Activity
-            </h3>
-            <Link href="/bugs" style={{ fontSize: '12px', color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '600' }}>
-              View All Defects →
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* ADVANCED RECENT DEFECT ACTIVITY TABLE                   */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        <div className="table-wrapper" style={{ marginTop: '24px' }}>
+          {/* Table Header Toolbar */}
+          <div className="table-toolbar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#eef2ff',
+                color: '#4f46e5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Bug size={17} />
+              </div>
+              <div>
+                <div className="table-toolbar-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  Recent Defect Activity
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    border: '1px solid #e2e8f0',
+                  }}>
+                    {recentBugs.length} Issues
+                  </span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>Latest defects across projects with real-time status</div>
+              </div>
+            </div>
+            <Link href="/bugs" className="btn btn-secondary btn-sm" style={{ fontSize: '12px', fontWeight: '650' }}>
+              View All Defects
+              <ArrowRight size={13} />
             </Link>
           </div>
 
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: '110px' }}>Defect ID</th>
+                <th>Defect Summary</th>
+                <th style={{ width: '120px' }}>Domain</th>
+                <th style={{ width: '110px' }}>Severity</th>
+                <th style={{ width: '130px' }}>Status</th>
+                <th style={{ width: '170px' }}>Assignee</th>
+                <th style={{ width: '150px' }}>Reporter</th>
+                <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentBugs.length === 0 ? (
                 <tr>
-                  <th>Issue</th>
-                  <th>Title</th>
-                  <th>Area</th>
-                  <th>Severity</th>
-                  <th>Status</th>
-                  <th>Assignee</th>
-                  <th>Reported By</th>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                    No defect activity recorded yet.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {recentBugs.map((b) => (
-                  <tr key={b.id}>
-                    <td>
-                      <Link href={`/bugs/${b.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)', textDecoration: 'none' }}>
-                        {b.issueKey}
-                      </Link>
-                    </td>
-                    <td style={{ maxWidth: '280px' }}>
-                      <Link href={`/bugs/${b.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '500' }}>
-                        {b.title}
-                      </Link>
-                    </td>
-                    <td>
-                      <span className="area-pill">
-                        {b.bugArea || 'FRONTEND'}
-                      </span>
-                    </td>
-                    <td><span className={`badge badge-${b.severity.toLowerCase()}`}>{b.severity}</span></td>
-                    <td><span className={`badge badge-status-${b.status.toLowerCase().replace(/_/g, '-')}`}>{b.status.replace(/_/g, ' ')}</span></td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      {b.assignedTo?.name ?? 'Unassigned'}
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>
-                      {b.reportedBy?.name ?? 'System'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              ) : (
+                recentBugs.map((b) => {
+                  const areaStyle = getAreaBadgeStyle(b.bugArea);
+                  const sevDot = getSeverityDotColor(b.severity);
+                  const statusDot = getStatusDotColor(b.status);
+
+                  return (
+                    <tr key={b.id}>
+                      {/* Defect Monospace Pill */}
+                      <td>
+                        <Link href={`/bugs/${b.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
+                          #{b.issueKey}
+                        </Link>
+                      </td>
+
+                      {/* Title + Activity Timestamp */}
+                      <td style={{ maxWidth: '320px' }}>
+                        <div>
+                          <Link
+                            href={`/bugs/${b.id}`}
+                            style={{
+                              color: '#0f172a',
+                              textDecoration: 'none',
+                              fontWeight: '650',
+                              fontSize: '13px',
+                              lineHeight: '1.3',
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {b.title}
+                          </Link>
+                          <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={11} />
+                            <span>Reported {timeAgo(b.createdAt)}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Domain Area */}
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '10.5px',
+                            fontWeight: '750',
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            background: areaStyle.bg,
+                            color: areaStyle.text,
+                            border: `1px solid ${areaStyle.border}`,
+                          }}
+                        >
+                          {b.bugArea || 'FRONTEND'}
+                        </span>
+                      </td>
+
+                      {/* Severity with Dot */}
+                      <td>
+                        <span className={`badge badge-${(b.severity || 'LOW').toLowerCase()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: sevDot }} />
+                          {b.severity}
+                        </span>
+                      </td>
+
+                      {/* Status with Pill */}
+                      <td>
+                        <span
+                          className="status-pill"
+                          style={{
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <span className="status-dot" style={{ background: statusDot }} />
+                          {(b.status || 'NEW').replace(/_/g, ' ')}
+                        </span>
+                      </td>
+
+                      {/* Assignee Avatar + Name */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              background: '#e0f2fe',
+                              color: '#0284c7',
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              border: '1px solid #bae6fd',
+                            }}
+                          >
+                            {b.assignedTo?.name ? b.assignedTo.name[0].toUpperCase() : '?'}
+                          </div>
+                          <span style={{ fontSize: '12.5px', color: '#1e293b', fontWeight: '550', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {b.assignedTo?.name ?? 'Unassigned'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Reporter */}
+                      <td>
+                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+                          {b.reportedBy?.name ?? 'System'}
+                        </div>
+                      </td>
+
+                      {/* Quick Action Button */}
+                      <td style={{ textAlign: 'right' }}>
+                        <Link
+                          href={`/bugs/${b.id}`}
+                          className="btn btn-ghost btn-sm"
+                          title="View Details"
+                          style={{ padding: '4px 8px', color: '#4f46e5' }}
+                        >
+                          <ChevronRight size={16} />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+
+          {/* Table Footer */}
+          <div className="table-footer">
+            <span>Showing top {recentBugs.length} latest defects</span>
+            <Link href="/bugs" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: '650', fontSize: '12px' }}>
+              Explore All Defects in Grid →
+            </Link>
           </div>
         </div>
       </div>

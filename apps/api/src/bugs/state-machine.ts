@@ -18,6 +18,7 @@ type Role = 'LEAD' | 'QA' | 'DEV' | 'VIEWER' | 'ADMIN';
 
 export const BUG_STATE_TRANSITIONS: Record<BugStatus, Partial<Record<Role, BugStatus[]>>> = {
   [BugStatus.NEW]: {
+    DEV: [BugStatus.IN_PROGRESS, BugStatus.ASSIGNED],
     LEAD: [BugStatus.ASSIGNED, BugStatus.DEFERRED, BugStatus.CLOSED],
     QA: [BugStatus.CLOSED],
     ADMIN: [BugStatus.ASSIGNED, BugStatus.DEFERRED, BugStatus.CLOSED],

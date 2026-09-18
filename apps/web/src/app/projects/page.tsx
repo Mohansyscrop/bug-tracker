@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
 import Link from 'next/link';
@@ -176,88 +177,84 @@ export default function ProjectsPage() {
         )}
 
         {/* Modal: Create project */}
-        {showCreate && (
-          <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-            <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Create New Project
-                </h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowCreate(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-
-              {error && (
-                <div style={{
-                  background: 'var(--color-danger-dim)',
-                  border: '1px solid var(--color-danger-border)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '10px 14px',
-                  color: 'var(--color-danger)',
-                  fontSize: '12.5px',
-                  marginBottom: '14px',
-                }}>
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={createProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Project Name *</label>
-                  <input
-                    id="project-name-input"
-                    className="input"
-                    placeholder="e.g. Mobile E-Commerce App"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                    minLength={2}
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Project Key (Prefix) *</label>
-                  <input
-                    id="project-key-input"
-                    className="input"
-                    placeholder="e.g. MOB"
-                    value={form.key}
-                    onChange={(e) => setForm((f) => ({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
-                    required
-                    minLength={2}
-                    maxLength={10}
-                    style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}
-                  />
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '4px' }}>
-                    Prefix for all issue and test case keys (e.g., MOB-101).
-                  </p>
-                </div>
-
-                <div>
-                  <label className="label">Project Description</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    placeholder="Brief summary of the application, architecture, and team scope..."
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={creating || !form.name.trim() || !form.key.trim()}>
-                    {creating ? 'Creating...' : 'Create Project'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} maxWidth="500px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+            <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              Create New Project
+            </h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowCreate(false)}>
+              <X size={16} />
+            </button>
           </div>
-        )}
+
+          {error && (
+            <div style={{
+              background: 'var(--color-danger-dim)',
+              border: '1px solid var(--color-danger-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: '10px 14px',
+              color: 'var(--color-danger)',
+              fontSize: '12.5px',
+              marginBottom: '16px',
+            }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={createProject} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label className="label">Project Name *</label>
+              <input
+                id="project-name-input"
+                className="input"
+                placeholder="e.g. Mobile E-Commerce App"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                required
+                minLength={2}
+                maxLength={100}
+              />
+            </div>
+
+            <div>
+              <label className="label">Project Key (Prefix) *</label>
+              <input
+                id="project-key-input"
+                className="input"
+                placeholder="e.g. MOB"
+                value={form.key}
+                onChange={(e) => setForm((f) => ({ ...f, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
+                required
+                minLength={2}
+                maxLength={10}
+                style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}
+              />
+              <p style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '4px' }}>
+                Prefix for all issue and test case keys (e.g., MOB-101).
+              </p>
+            </div>
+
+            <div>
+              <label className="label">Project Description</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="Brief summary of the application, architecture, and team scope..."
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={creating || !form.name.trim() || !form.key.trim()}>
+                {creating ? 'Creating...' : 'Create Project'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </AppLayout>
   );

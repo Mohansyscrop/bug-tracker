@@ -3,12 +3,23 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { authApi, ApiError } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-interface User {
+export interface ProjectMemberItem {
+  projectId: string;
+  projectRole: string;
+  project?: {
+    id: string;
+    name: string;
+    key: string;
+  };
+}
+
+export interface User {
   id: string;
   name: string;
   email: string;
   globalRole: string;
   createdAt: string;
+  projectMembers?: ProjectMemberItem[];
 }
 
 interface AuthContextType {
@@ -35,8 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email, password);
-    setUser(res.data);
-    router.push('/dashboard');
+    const loggedUser = res.data;
+    setUser(loggedUser);
+    const isDev = loggedUser.projectMembers?.some((m: any) =>
+      m.projectRole?.includes('DEV') || m.projectRole === 'DEVELOPER'
+    );
+    if (isDev && loggedUser.globalRole !== 'ADMIN') {
+      router.push('/developer');
+    } else {
+      router.push('/dashboard');
+    }
   }, [router]);
 
   const register = useCallback(async (name: string, email: string, password: string) => {

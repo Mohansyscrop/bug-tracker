@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useEffect, useState, useCallback } from 'react';
 import { testingCyclesApi, bugsApi } from '@/lib/api';
 import { useParams } from 'next/navigation';
@@ -747,320 +748,304 @@ export default function TestingCycleDetailPage() {
         )}
 
         {/* Modal: Add Test Suite */}
-        {showAddSuiteModal && (
-          <div className="modal-overlay" onClick={() => setShowAddSuiteModal(false)}>
-            <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Test Suite</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddSuiteModal(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddSuite} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Suite Name *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Contact Form Validation Suite"
-                    value={suiteName}
-                    onChange={(e) => setSuiteName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Description</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    placeholder="Optional scope details about this test suite..."
-                    value={suiteDesc}
-                    onChange={(e) => setSuiteDesc(e.target.value)}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddSuiteModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    Create Suite
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddSuiteModal} onClose={() => setShowAddSuiteModal(false)} maxWidth="480px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Test Suite</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddSuiteModal(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddSuite} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Suite Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. Contact Form Validation Suite"
+                value={suiteName}
+                onChange={(e) => setSuiteName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Description</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="Optional scope details about this test suite..."
+                value={suiteDesc}
+                onChange={(e) => setSuiteDesc(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddSuiteModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Create Suite
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Add Test Case */}
-        {showAddCaseModal && (
-          <div className="modal-overlay" onClick={() => setShowAddCaseModal(false)}>
-            <div className="modal" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Test Scenario</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddCaseModal(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddCase} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Test Suite *</label>
-                  <select
-                    className="select"
-                    value={caseForm.suiteId}
-                    onChange={(e) => setCaseForm((f) => ({ ...f, suiteId: e.target.value }))}
-                    required
-                  >
-                    {cycle.testSuites?.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="label">Scenario Title *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Verify contact form submission with invalid email format"
-                    value={caseForm.title}
-                    onChange={(e) => setCaseForm((f) => ({ ...f, title: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label className="label">Scenario Type</label>
-                    <select
-                      className="select"
-                      value={caseForm.type}
-                      onChange={(e) => setCaseForm((f) => ({ ...f, type: e.target.value }))}
-                    >
-                      <option value="FUNCTIONAL">Functional Scenario</option>
-                      <option value="REGRESSION">Regression Test</option>
-                      <option value="UI_UX">UI / UX Verification</option>
-                      <option value="SECURITY">Security Validation</option>
-                      <option value="PERFORMANCE">Performance Check</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="label">Priority</label>
-                    <select
-                      className="select"
-                      value={caseForm.priority}
-                      onChange={(e) => setCaseForm((f) => ({ ...f, priority: e.target.value }))}
-                    >
-                      <option value="P1">P1 — Critical</option>
-                      <option value="P2">P2 — High</option>
-                      <option value="P3">P3 — Normal</option>
-                      <option value="P4">P4 — Low</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Test Steps *</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    placeholder="1. Navigate to contact page&#10;2. Enter invalid email&#10;3. Click submit"
-                    value={caseForm.steps}
-                    onChange={(e) => setCaseForm((f) => ({ ...f, steps: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="label">Expected Result *</label>
-                  <textarea
-                    className="textarea"
-                    rows={2}
-                    placeholder="Validation error displayed: 'Please enter a valid email address'"
-                    value={caseForm.expectedResult}
-                    onChange={(e) => setCaseForm((f) => ({ ...f, expectedResult: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddCaseModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    Create Scenario
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddCaseModal} onClose={() => setShowAddCaseModal(false)} maxWidth="540px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Test Scenario</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddCaseModal(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddCase} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Test Suite *</label>
+              <select
+                className="select"
+                value={caseForm.suiteId}
+                onChange={(e) => setCaseForm((f) => ({ ...f, suiteId: e.target.value }))}
+                required
+              >
+                {cycle.testSuites?.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Scenario Title *</label>
+              <input
+                className="input"
+                placeholder="e.g. Verify contact form submission with invalid email format"
+                value={caseForm.title}
+                onChange={(e) => setCaseForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="label">Scenario Type</label>
+                <select
+                  className="select"
+                  value={caseForm.type}
+                  onChange={(e) => setCaseForm((f) => ({ ...f, type: e.target.value }))}
+                >
+                  <option value="FUNCTIONAL">Functional Scenario</option>
+                  <option value="REGRESSION">Regression Test</option>
+                  <option value="UI_UX">UI / UX Verification</option>
+                  <option value="SECURITY">Security Validation</option>
+                  <option value="PERFORMANCE">Performance Check</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Priority</label>
+                <select
+                  className="select"
+                  value={caseForm.priority}
+                  onChange={(e) => setCaseForm((f) => ({ ...f, priority: e.target.value }))}
+                >
+                  <option value="P1">P1 — Critical</option>
+                  <option value="P2">P2 — High</option>
+                  <option value="P3">P3 — Normal</option>
+                  <option value="P4">P4 — Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Test Steps *</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="1. Navigate to contact page&#10;2. Enter invalid email&#10;3. Click submit"
+                value={caseForm.steps}
+                onChange={(e) => setCaseForm((f) => ({ ...f, steps: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="label">Expected Result *</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Validation error displayed: 'Please enter a valid email address'"
+                value={caseForm.expectedResult}
+                onChange={(e) => setCaseForm((f) => ({ ...f, expectedResult: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddCaseModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Create Scenario
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Log Defect */}
-        {showLogBugModal && (
-          <div className="modal-overlay" onClick={() => setShowLogBugModal(false)}>
-            <div className="modal" style={{ maxWidth: '580px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
-                  Log Defect for {cycle.name}
-                </h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowLogBugModal(false)}>
-                  <X size={15} />
-                </button>
+        <Modal isOpen={showLogBugModal} onClose={() => setShowLogBugModal(false)} maxWidth="580px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
+              Log Defect for {cycle.name}
+            </h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowLogBugModal(false)}>
+              <X size={15} />
+            </button>
+          </div>
+
+          <form onSubmit={handleCreateBug} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Bug Title *</label>
+              <input
+                className="input"
+                value={bugForm.title}
+                onChange={(e) => setBugForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="label">Technical Bug Area *</label>
+                <select
+                  className="select"
+                  value={bugForm.bugArea}
+                  onChange={(e) => setBugForm((f) => ({ ...f, bugArea: e.target.value }))}
+                >
+                  <option value="FRONTEND">FRONTEND (Client-side UI / JS)</option>
+                  <option value="BACKEND">BACKEND (Server / Service)</option>
+                  <option value="API">API (REST / Endpoints)</option>
+                  <option value="DATABASE">DATABASE (SQL / Query / Data)</option>
+                  <option value="INTEGRATION">INTEGRATION (Third-party)</option>
+                  <option value="UI_UX">UI / UX (Styling / Layout)</option>
+                  <option value="PERFORMANCE">PERFORMANCE (Latency / Load)</option>
+                  <option value="SECURITY">SECURITY (Auth / Vulnerability)</option>
+                  <option value="REGRESSION">REGRESSION (Previously working feature)</option>
+                </select>
               </div>
 
-              <form onSubmit={handleCreateBug} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Bug Title *</label>
-                  <input
-                    className="input"
-                    value={bugForm.title}
-                    onChange={(e) => setBugForm((f) => ({ ...f, title: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label className="label">Technical Bug Area *</label>
-                    <select
-                      className="select"
-                      value={bugForm.bugArea}
-                      onChange={(e) => setBugForm((f) => ({ ...f, bugArea: e.target.value }))}
-                    >
-                      <option value="FRONTEND">FRONTEND (Client-side UI / JS)</option>
-                      <option value="BACKEND">BACKEND (Server / Service)</option>
-                      <option value="API">API (REST / Endpoints)</option>
-                      <option value="DATABASE">DATABASE (SQL / Query / Data)</option>
-                      <option value="INTEGRATION">INTEGRATION (Third-party)</option>
-                      <option value="UI_UX">UI / UX (Styling / Layout)</option>
-                      <option value="PERFORMANCE">PERFORMANCE (Latency / Load)</option>
-                      <option value="SECURITY">SECURITY (Auth / Vulnerability)</option>
-                      <option value="REGRESSION">REGRESSION (Previously working feature)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="label">Severity *</label>
-                    <select
-                      className="select"
-                      value={bugForm.severity}
-                      onChange={(e) => setBugForm((f) => ({ ...f, severity: e.target.value }))}
-                    >
-                      <option value="CRITICAL">CRITICAL</option>
-                      <option value="HIGH">HIGH</option>
-                      <option value="MEDIUM">MEDIUM</option>
-                      <option value="LOW">LOW</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Steps to Reproduce *</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    value={bugForm.stepsToReproduce}
-                    onChange={(e) => setBugForm((f) => ({ ...f, stepsToReproduce: e.target.value }))}
-                    required
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label className="label">Expected Result *</label>
-                    <textarea
-                      className="textarea"
-                      rows={2}
-                      value={bugForm.expectedResult}
-                      onChange={(e) => setBugForm((f) => ({ ...f, expectedResult: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Actual Result *</label>
-                    <textarea
-                      className="textarea"
-                      rows={2}
-                      value={bugForm.actualResult}
-                      onChange={(e) => setBugForm((f) => ({ ...f, actualResult: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="label">Assign to Developer</label>
-                  <select
-                    className="select"
-                    value={bugForm.assignedTo}
-                    onChange={(e) => setBugForm((f) => ({ ...f, assignedTo: e.target.value }))}
-                  >
-                    <option value="">— Unassigned (Project Lead Triage) —</option>
-                    {cycle.project?.members?.map((m: any) => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.user?.name} ({m.projectRole})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowLogBugModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    Log Defect
-                  </button>
-                </div>
-              </form>
+              <div>
+                <label className="label">Severity *</label>
+                <select
+                  className="select"
+                  value={bugForm.severity}
+                  onChange={(e) => setBugForm((f) => ({ ...f, severity: e.target.value }))}
+                >
+                  <option value="CRITICAL">CRITICAL</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </div>
             </div>
-          </div>
-        )}
+
+            <div>
+              <label className="label">Steps to Reproduce *</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                value={bugForm.stepsToReproduce}
+                onChange={(e) => setBugForm((f) => ({ ...f, stepsToReproduce: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="label">Expected Result *</label>
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  value={bugForm.expectedResult}
+                  onChange={(e) => setBugForm((f) => ({ ...f, expectedResult: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">Actual Result *</label>
+                <textarea
+                  className="textarea"
+                  rows={2}
+                  value={bugForm.actualResult}
+                  onChange={(e) => setBugForm((f) => ({ ...f, actualResult: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Assign to Developer</label>
+              <select
+                className="select"
+                value={bugForm.assignedTo}
+                onChange={(e) => setBugForm((f) => ({ ...f, assignedTo: e.target.value }))}
+              >
+                <option value="">— Unassigned (Project Lead Triage) —</option>
+                {cycle.project?.members?.map((m: any) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.user?.name} ({m.projectRole})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowLogBugModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Log Defect
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: New Requirement */}
-        {showReqModal && (
-          <div className="modal-overlay" onClick={() => setShowReqModal(false)}>
-            <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Project Requirement</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowReqModal(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddRequirement} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Requirement Title *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Contact Form Submission"
-                    value={reqForm.title}
-                    onChange={(e) => setReqForm((f) => ({ ...f, title: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Description / User Story</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    placeholder="As a customer, I want to submit inquiries..."
-                    value={reqForm.description}
-                    onChange={(e) => setReqForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowReqModal(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    Create Requirement
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showReqModal} onClose={() => setShowReqModal(false)} maxWidth="480px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Project Requirement</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowReqModal(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddRequirement} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Requirement Title *</label>
+              <input
+                className="input"
+                placeholder="e.g. Contact Form Submission"
+                value={reqForm.title}
+                onChange={(e) => setReqForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Description / User Story</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="As a customer, I want to submit inquiries..."
+                value={reqForm.description}
+                onChange={(e) => setReqForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowReqModal(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Create Requirement
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </AppLayout>
   );

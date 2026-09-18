@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useState, useEffect } from 'react';
 import { bugsApi, commentsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
@@ -579,12 +580,17 @@ export default function BugDetailPage() {
         </div>
 
         {/* Transition Dialog Modal */}
-        {transitionModal && (
-          <div className="modal-overlay" onClick={() => setTransitionModal(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '14px', color: 'var(--color-text)' }}>
-                Confirm Transition: {transitionModal.status.replace(/_/g, ' ')}
-              </h2>
+        <Modal isOpen={!!transitionModal} onClose={() => setTransitionModal(null)} maxWidth="480px">
+          {transitionModal && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
+                  Confirm Transition: {transitionModal.status.replace(/_/g, ' ')}
+                </h2>
+                <button className="btn btn-ghost btn-icon" onClick={() => setTransitionModal(null)}>
+                  <X size={15} />
+                </button>
+              </div>
 
               {transitionModal.status === 'CLOSED' && (
                 <div style={{ marginBottom: '14px' }}>
@@ -629,9 +635,9 @@ export default function BugDetailPage() {
                   {transitioning ? 'Updating...' : `Confirm → ${transitionModal.status}`}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </Modal>
       </div>
     </AppLayout>
   );

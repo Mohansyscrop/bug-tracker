@@ -7,35 +7,35 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Create users
-  const adminHash = await bcrypt.hash('Admin@123456', 12);
+  const adminHash = await bcrypt.hash('Admin@12', 12);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@bugtracker.local' },
+    where: { email: 'admin@gmail.com' },
     update: {},
     create: {
       name: 'System Admin',
-      email: 'admin@bugtracker.local',
+      email: 'admin@gmail.com',
       passwordHash: adminHash,
       globalRole: 'ADMIN',
     },
   });
 
-  const devHash = await bcrypt.hash('Dev@123456', 12);
+  const devHash = await bcrypt.hash('Mohan@12', 12);
   const dev1 = await prisma.user.upsert({
-    where: { email: 'alice@bugtracker.local' },
+    where: { email: 'mohan@gmail.com' },
     update: {},
-    create: { name: 'Alice Dev', email: 'alice@bugtracker.local', passwordHash: devHash },
+    create: { name: 'Mohan Developer', email: 'mohan@gmail.com', passwordHash: devHash },
   });
 
   const qa1 = await prisma.user.upsert({
-    where: { email: 'bob@bugtracker.local' },
+    where: { email: 'bala@gmail.com' },
     update: {},
-    create: { name: 'Bob QA', email: 'bob@bugtracker.local', passwordHash: devHash },
+    create: { name: 'Bala QA', email: 'bala@gmail.com', passwordHash: devHash },
   });
 
   const lead1 = await prisma.user.upsert({
-    where: { email: 'carol@bugtracker.local' },
+    where: { email: 'pm@gmail.com' },
     update: {},
-    create: { name: 'Carol Lead', email: 'carol@bugtracker.local', passwordHash: devHash },
+    create: { name: 'PM', email: 'pm@gmail.com', passwordHash: devHash },
   });
 
   console.log('✅ Users created');
@@ -78,20 +78,70 @@ async function main() {
 
   console.log('✅ Project members added');
 
-  // Create milestone
-  const milestone = await prisma.milestone.create({
-    data: {
-      projectId: project.id,
-      name: 'v1.0 Launch',
-      versionCode: '1.0.0',
-      releaseDate: new Date('2026-10-31'),
-    },
+  // Create milestone if not exists
+  let milestone = await prisma.milestone.findFirst({
+    where: { projectId: project.id, name: 'v1.0 Launch' },
   });
+  if (!milestone) {
+    milestone = await prisma.milestone.create({
+      data: {
+        projectId: project.id,
+        name: 'v1.0 Launch',
+        versionCode: '1.0.0',
+        releaseDate: new Date('2026-10-31'),
+      },
+    });
+  }
 
-  // Create component
-  const component = await prisma.component.create({
-    data: { projectId: project.id, name: 'Authentication', leadId: dev1.id },
+  // Create component if not exists
+  let component = await prisma.component.findFirst({
+    where: { projectId: project.id, name: 'Authentication' },
   });
+  if (!component) {
+    component = await prisma.component.create({
+      data: { projectId: project.id, name: 'Authentication', leadId: dev1.id },
+    });
+  }
+
+  // Create or find Testing Cycles
+  let cycle1 = await prisma.testingCycle.findFirst({
+    where: { projectId: project.id, cycleNumber: 1 },
+  });
+  if (!cycle1) {
+    cycle1 = await prisma.testingCycle.create({
+      data: {
+        projectId: project.id,
+        name: 'Cycle 01 — Sprint 14 Core Auth & UI Testing',
+        cycleNumber: 1,
+        description: 'Comprehensive functional test cycle for user authentication and dashboard responsiveness.',
+        scope: 'Login, Auth cookies, Dashboard metrics widgets, Session timeout',
+        type: 'FUNCTIONAL',
+        status: 'IN_PROGRESS',
+        environment: 'QA',
+        createdById: qa1.id,
+      },
+    });
+  }
+
+  let cycle2 = await prisma.testingCycle.findFirst({
+    where: { projectId: project.id, cycleNumber: 2 },
+  });
+  if (!cycle2) {
+    cycle2 = await prisma.testingCycle.create({
+      data: {
+        projectId: project.id,
+        name: 'Cycle 02 — Sprint 15 Regression & Comment Interaction',
+        cycleNumber: 2,
+        description: 'Regression testing on project statistics calculation and mobile comment interactions.',
+        scope: 'Project bug metrics, comments, mobile responsive layout',
+        type: 'REGRESSION',
+        status: 'IN_PROGRESS',
+        environment: 'Staging',
+        createdById: qa1.id,
+      },
+    });
+  }
+  console.log('✅ Testing cycles created');
 
   // Create sample bugs
   const bugData = [
@@ -103,7 +153,10 @@ async function main() {
       actualResult: 'Page reloads with no error message, user not authenticated',
       severity: 'CRITICAL',
       priority: 'P1',
+      status: 'ASSIGNED',
       environment: 'Production',
+      testingCycleId: cycle1.id,
+      bugArea: 'FRONTEND',
     },
     {
       title: 'Dashboard charts not rendering on mobile viewport',
@@ -113,7 +166,10 @@ async function main() {
       actualResult: 'Charts show empty white space, no data visible',
       severity: 'HIGH',
       priority: 'P2',
+      status: 'IN_PROGRESS',
       environment: 'Staging',
+      testingCycleId: cycle1.id,
+      bugArea: 'UI_UX',
     },
     {
       title: 'Incorrect bug count shown in project stats',
@@ -123,7 +179,10 @@ async function main() {
       actualResult: 'Count includes deleted bugs',
       severity: 'MEDIUM',
       priority: 'P2',
+      status: 'ASSIGNED',
       environment: 'Production',
+      testingCycleId: cycle2.id,
+      bugArea: 'BACKEND',
     },
     {
       title: 'Comment textarea loses focus on mobile keyboard open',
@@ -133,7 +192,10 @@ async function main() {
       actualResult: 'Textarea is hidden behind keyboard',
       severity: 'LOW',
       priority: 'P4',
+      status: 'IN_PROGRESS',
       environment: 'QA-Env-1',
+      testingCycleId: cycle2.id,
+      bugArea: 'FRONTEND',
     },
   ];
 
@@ -154,6 +216,17 @@ async function main() {
           ...bug,
         },
       });
+    } else {
+      // Update existing bugs to link testing cycle and proper status
+      await prisma.bug.update({
+        where: { id: exists.id },
+        data: {
+          testingCycleId: bug.testingCycleId,
+          assignedToId: dev1.id,
+          status: bug.status,
+          bugArea: bug.bugArea,
+        },
+      });
     }
   }
 
@@ -162,13 +235,13 @@ async function main() {
     data: { lastSeq: seq },
   });
 
-  console.log(`✅ ${bugData.length} sample bugs created`);
+  console.log(`✅ ${bugData.length} sample bugs updated/created`);
   console.log('\n🎉 Seed complete!');
   console.log('\nDemo accounts:');
-  console.log('  admin@bugtracker.local / Admin@123456  (System Admin)');
-  console.log('  alice@bugtracker.local / Dev@123456    (Developer)');
-  console.log('  bob@bugtracker.local   / Dev@123456    (QA)');
-  console.log('  carol@bugtracker.local / Dev@123456    (Lead)');
+  console.log('  admin@gmail.com | Admin@12 | System Admin');
+  console.log('  mohan@gmail.com | Mohan@12 | Developer');
+  console.log('  bala@gmail.com   | Bala@12 | QA');
+  console.log('  pm@gmail.com | PM@12 | Lead');
 }
 
 main()

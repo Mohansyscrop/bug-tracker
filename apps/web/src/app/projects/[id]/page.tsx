@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import Modal from '@/components/Modal';
 import { useEffect, useState, useCallback } from 'react';
 import { projectsApi, bugsApi, usersApi, testingCyclesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
@@ -619,235 +620,219 @@ export default function ProjectDetailPage() {
         )}
 
         {/* Modal: Add Member */}
-        {showAddMember && (
-          <div className="modal-overlay" onClick={() => setShowAddMember(false)}>
-            <div className="modal" style={{ maxWidth: '460px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Team Member</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddMember(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Select User *</label>
-                  {availableUsers.length === 0 ? (
-                    <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>All available registered users are already in this project.</p>
-                  ) : (
-                    <select
-                      className="select"
-                      value={addMemberUserId}
-                      onChange={(e) => setAddMemberUserId(e.target.value)}
-                      required
-                    >
-                      {availableUsers.map((u: any) => (
-                        <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-
-                <div>
-                  <label className="label">Assigned Role *</label>
-                  <select
-                    className="select"
-                    value={addMemberRole}
-                    onChange={(e) => setAddMemberRole(e.target.value)}
-                    required
-                  >
-                    <option value="DEV">DEV — Developer</option>
-                    <option value="QA">QA — Test Engineer</option>
-                    <option value="LEAD">LEAD — QA / Tech Lead</option>
-                    <option value="VIEWER">VIEWER — Read Only</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddMember(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={addingMember || availableUsers.length === 0}>
-                    {addingMember ? 'Adding...' : 'Add Member'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddMember} onClose={() => setShowAddMember(false)} maxWidth="460px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Team Member</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddMember(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Select User *</label>
+              {availableUsers.length === 0 ? (
+                <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>All available registered users are already in this project.</p>
+              ) : (
+                <select
+                  className="select"
+                  value={addMemberUserId}
+                  onChange={(e) => setAddMemberUserId(e.target.value)}
+                  required
+                >
+                  {availableUsers.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div>
+              <label className="label">Assigned Role *</label>
+              <select
+                className="select"
+                value={addMemberRole}
+                onChange={(e) => setAddMemberRole(e.target.value)}
+                required
+              >
+                <option value="DEV">DEV — Developer</option>
+                <option value="QA">QA — Test Engineer</option>
+                <option value="LEAD">LEAD — QA / Tech Lead</option>
+                <option value="VIEWER">VIEWER — Read Only</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddMember(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={addingMember || availableUsers.length === 0}>
+                {addingMember ? 'Adding...' : 'Add Member'}
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Add Milestone */}
-        {showAddMilestone && (
-          <div className="modal-overlay" onClick={() => setShowAddMilestone(false)}>
-            <div className="modal" style={{ maxWidth: '460px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Release Milestone</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddMilestone(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddMilestone} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Milestone Name *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. v2.0 Production Release"
-                    value={milestoneForm.name}
-                    onChange={(e) => setMilestoneForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Version Code</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. 2.0.0"
-                    value={milestoneForm.versionCode}
-                    onChange={(e) => setMilestoneForm((f) => ({ ...f, versionCode: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="label">Target Release Date</label>
-                  <input
-                    type="date"
-                    className="input"
-                    value={milestoneForm.releaseDate}
-                    onChange={(e) => setMilestoneForm((f) => ({ ...f, releaseDate: e.target.value }))}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddMilestone(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={addingMilestone || !milestoneForm.name.trim()}>
-                    {addingMilestone ? 'Saving...' : 'Create Milestone'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddMilestone} onClose={() => setShowAddMilestone(false)} maxWidth="460px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Release Milestone</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddMilestone(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddMilestone} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Milestone Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. v2.0 Production Release"
+                value={milestoneForm.name}
+                onChange={(e) => setMilestoneForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Version Code</label>
+              <input
+                className="input"
+                placeholder="e.g. 2.0.0"
+                value={milestoneForm.versionCode}
+                onChange={(e) => setMilestoneForm((f) => ({ ...f, versionCode: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label">Target Release Date</label>
+              <input
+                type="date"
+                className="input"
+                value={milestoneForm.releaseDate}
+                onChange={(e) => setMilestoneForm((f) => ({ ...f, releaseDate: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddMilestone(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={addingMilestone || !milestoneForm.name.trim()}>
+                {addingMilestone ? 'Saving...' : 'Create Milestone'}
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Add Cycle */}
-        {showAddCycle && (
-          <div className="modal-overlay" onClick={() => setShowAddCycle(false)}>
-            <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Plan New Testing Cycle</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddCycle(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddCycle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Cycle Name *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. Sprint 24 — Regression & Payment Gateways"
-                    value={cycleForm.name}
-                    onChange={(e) => setCycleForm((f) => ({ ...f, name: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Environment</label>
-                  <select
-                    className="select"
-                    value={cycleForm.environment}
-                    onChange={(e) => setCycleForm((f) => ({ ...f, environment: e.target.value }))}
-                  >
-                    <option value="QA">QA Build</option>
-                    <option value="Staging">Staging</option>
-                    <option value="UAT">UAT</option>
-                    <option value="Production">Production</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Cycle Code / Ref</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. TC-02"
-                    value={cycleForm.cycleCode}
-                    onChange={(e) => setCycleForm((f) => ({ ...f, cycleCode: e.target.value }))}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddCycle(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={addingCycle || !cycleForm.name.trim()}>
-                    {addingCycle ? 'Creating...' : 'Create Cycle'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddCycle} onClose={() => setShowAddCycle(false)} maxWidth="480px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Plan New Testing Cycle</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddCycle(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddCycle} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Cycle Name *</label>
+              <input
+                className="input"
+                placeholder="e.g. Sprint 24 — Regression & Payment Gateways"
+                value={cycleForm.name}
+                onChange={(e) => setCycleForm((f) => ({ ...f, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Environment</label>
+              <select
+                className="select"
+                value={cycleForm.environment}
+                onChange={(e) => setCycleForm((f) => ({ ...f, environment: e.target.value }))}
+              >
+                <option value="QA">QA Build</option>
+                <option value="Staging">Staging</option>
+                <option value="UAT">UAT</option>
+                <option value="Production">Production</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Cycle Code / Ref</label>
+              <input
+                className="input"
+                placeholder="e.g. TC-02"
+                value={cycleForm.cycleCode}
+                onChange={(e) => setCycleForm((f) => ({ ...f, cycleCode: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddCycle(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={addingCycle || !cycleForm.name.trim()}>
+                {addingCycle ? 'Creating...' : 'Create Cycle'}
+              </button>
+            </div>
+          </form>
+        </Modal>
 
         {/* Modal: Add Requirement */}
-        {showAddReq && (
-          <div className="modal-overlay" onClick={() => setShowAddReq(false)}>
-            <div className="modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Requirement</h2>
-                <button className="btn btn-ghost btn-icon" onClick={() => setShowAddReq(false)}>
-                  <X size={15} />
-                </button>
-              </div>
-              <form onSubmit={handleAddRequirement} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label className="label">Requirement Code</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. REQ-101"
-                    value={reqForm.reqCode}
-                    onChange={(e) => setReqForm((f) => ({ ...f, reqCode: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="label">Requirement Title *</label>
-                  <input
-                    className="input"
-                    placeholder="e.g. User Authentication & 2FA"
-                    value={reqForm.title}
-                    onChange={(e) => setReqForm((f) => ({ ...f, title: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="label">Priority</label>
-                  <select
-                    className="select"
-                    value={reqForm.priority}
-                    onChange={(e) => setReqForm((f) => ({ ...f, priority: e.target.value }))}
-                  >
-                    <option value="CRITICAL">Critical</option>
-                    <option value="HIGH">High</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="LOW">Low</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Description / User Story</label>
-                  <textarea
-                    className="textarea"
-                    rows={3}
-                    placeholder="Describe requirement criteria..."
-                    value={reqForm.description}
-                    onChange={(e) => setReqForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddReq(false)}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary btn-sm" disabled={addingReq || !reqForm.title.trim()}>
-                    {addingReq ? 'Saving...' : 'Create Requirement'}
-                  </button>
-                </div>
-              </form>
-            </div>
+        <Modal isOpen={showAddReq} onClose={() => setShowAddReq(false)} maxWidth="480px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>Add Requirement</h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setShowAddReq(false)}>
+              <X size={15} />
+            </button>
           </div>
-        )}
+          <form onSubmit={handleAddRequirement} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label className="label">Requirement Code</label>
+              <input
+                className="input"
+                placeholder="e.g. REQ-101"
+                value={reqForm.reqCode}
+                onChange={(e) => setReqForm((f) => ({ ...f, reqCode: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label">Requirement Title *</label>
+              <input
+                className="input"
+                placeholder="e.g. User Authentication & 2FA"
+                value={reqForm.title}
+                onChange={(e) => setReqForm((f) => ({ ...f, title: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Priority</label>
+              <select
+                className="select"
+                value={reqForm.priority}
+                onChange={(e) => setReqForm((f) => ({ ...f, priority: e.target.value }))}
+              >
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Description / User Story</label>
+              <textarea
+                className="textarea"
+                rows={3}
+                placeholder="Describe requirement criteria..."
+                value={reqForm.description}
+                onChange={(e) => setReqForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAddReq(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={addingReq || !reqForm.title.trim()}>
+                {addingReq ? 'Saving...' : 'Create Requirement'}
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </AppLayout>
   );

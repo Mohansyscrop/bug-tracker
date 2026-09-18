@@ -326,23 +326,23 @@ export default function BugsPage() {
                       />
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <code>{bug.issueKey}</code>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="ticket-badge">#{bug.issueKey}</span>
                         {bug.isRegression && (
-                          <span title="Regression Bug" style={{ color: 'var(--color-danger)', fontSize: '11px' }}>
+                          <span title="Regression Bug" style={{ color: 'var(--color-danger)', fontSize: '12px', fontWeight: '800' }}>
                             ↩
                           </span>
                         )}
                       </div>
                     </td>
-                    <td style={{ maxWidth: '280px' }}>
+                    <td style={{ maxWidth: '300px' }}>
                       <span style={{
                         display: 'block',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         fontSize: '13px',
-                        fontWeight: '500',
+                        fontWeight: '600',
                         color: 'var(--color-text)',
                       }}>
                         {bug.title}
@@ -355,7 +355,11 @@ export default function BugsPage() {
                     </td>
                     <td><span className={`badge badge-${bug.severity.toLowerCase()}`}>{bug.severity}</span></td>
                     <td><span className={`badge badge-${bug.priority.toLowerCase()}`}>{bug.priority}</span></td>
-                    <td><span className={`badge badge-status-${bug.status.toLowerCase().replace(/_/g, '-')}`}>{bug.status.replace(/_/g, ' ')}</span></td>
+                    <td>
+                      <span className={`badge badge-status-${bug.status.toLowerCase().replace(/_/g, '-')}`}>
+                        {bug.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
                     <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       {bug.assignedTo ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
