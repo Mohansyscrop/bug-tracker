@@ -45,15 +45,9 @@ function timeAgo(dateString?: string): string {
 function getAreaBadgeStyle(area?: string) {
   switch (area) {
     case 'FRONTEND':
-    case 'UI_UX':
       return { bg: '#eef2ff', text: '#4338ca', border: 'rgba(99, 102, 241, 0.25)' };
     case 'BACKEND':
-    case 'API':
       return { bg: '#eff6ff', text: '#1d4ed8', border: 'rgba(59, 130, 246, 0.25)' };
-    case 'DATABASE':
-      return { bg: '#faf5ff', text: '#7e22ce', border: 'rgba(168, 85, 247, 0.25)' };
-    case 'REGRESSION':
-      return { bg: '#fee2e2', text: '#b91c1c', border: 'rgba(239, 68, 68, 0.25)' };
     default:
       return { bg: '#f1f5f9', text: '#334155', border: '#cbd5e1' };
   }
@@ -145,11 +139,11 @@ export default function DashboardPage() {
 
   // Frontend vs Backend defect separation
   const myFrontendBugs = useMemo(() => {
-    return myAssignedBugs.filter((b) => ['FRONTEND', 'UI_UX'].includes(b.bugArea));
+    return myAssignedBugs.filter((b) => b.bugArea === 'FRONTEND');
   }, [myAssignedBugs]);
 
   const myBackendBugs = useMemo(() => {
-    return myAssignedBugs.filter((b) => ['BACKEND', 'API', 'DATABASE', 'INTEGRATION'].includes(b.bugArea));
+    return myAssignedBugs.filter((b) => b.bugArea === 'BACKEND');
   }, [myAssignedBugs]);
 
   const qaStats = qaOverview?.testStats || { total: 0, passed: 0, failed: 0, blocked: 0, notRun: 0, passRate: 0 };
@@ -413,14 +407,10 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   {[
-                    { area: 'FRONTEND', label: 'Frontend UI', count: bugsByArea.FRONTEND || 0, color: '#4f46e5', bg: '#eef2ff' },
-                    { area: 'BACKEND', label: 'Backend Logic', count: bugsByArea.BACKEND || 0, color: '#0284c7', bg: '#e0f2fe' },
-                    { area: 'DATABASE', label: 'Database', count: bugsByArea.DATABASE || 0, color: '#7c3aed', bg: '#f3e8ff' },
-                    { area: 'API', label: 'REST API', count: bugsByArea.API || 0, color: '#0d9488', bg: '#ccfbf1' },
-                    { area: 'INTEGRATION', label: 'Integration', count: bugsByArea.INTEGRATION || 0, color: '#ea580c', bg: '#ffedd5' },
-                    { area: 'REGRESSION', label: 'Regression', count: bugsByArea.REGRESSION || 0, color: '#dc2626', bg: '#fee2e2' },
+                    { area: 'FRONTEND', label: 'Frontend', count: bugsByArea.FRONTEND || 0, color: '#4f46e5', bg: '#eef2ff' },
+                    { area: 'BACKEND', label: 'Backend', count: bugsByArea.BACKEND || 0, color: '#0284c7', bg: '#e0f2fe' },
                   ].map((item) => (
                     <div
                       key={item.area}

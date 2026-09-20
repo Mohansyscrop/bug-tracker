@@ -79,6 +79,7 @@ export default function CycleAssignedBugsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [areaFilter, setAreaFilter] = useState('ALL');
 
   // Status transition state
   const [transitioningBugId, setTransitioningBugId] = useState<string | null>(null);
@@ -127,6 +128,7 @@ export default function CycleAssignedBugsPage() {
     return assignedBugs.filter((bug) => {
       if (statusFilter !== 'ALL' && bug.status !== statusFilter) return false;
       if (priorityFilter !== 'ALL' && bug.priority !== priorityFilter) return false;
+      if (areaFilter !== 'ALL' && bug.bugArea !== areaFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const mKey = bug.issueKey?.toLowerCase().includes(q);
@@ -136,7 +138,7 @@ export default function CycleAssignedBugsPage() {
       }
       return true;
     });
-  }, [assignedBugs, statusFilter, priorityFilter, searchQuery]);
+  }, [assignedBugs, statusFilter, priorityFilter, areaFilter, searchQuery]);
 
   // Cycle stats
   const metrics = useMemo(() => {
@@ -414,6 +416,27 @@ export default function CycleAssignedBugsPage() {
           </div>
         </div>
 
+        {/* Informational banner if cycle is still in PLANNED state */}
+        {cycle?.status === 'PLANNED' && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: '12px',
+            padding: '14px 18px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            color: '#92400e',
+            fontSize: '13px',
+          }}>
+            <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
+            <div>
+              <span style={{ fontWeight: '700' }}>Cycle is currently in PLANNED state:</span> QA has not transitioned this testing cycle to IN PROGRESS yet.
+            </div>
+          </div>
+        )}
+
         {/* Workbench Filter Bar */}
         <div style={{
           background: '#ffffff',
@@ -483,6 +506,17 @@ export default function CycleAssignedBugsPage() {
               <option value="P2">P2 - High</option>
               <option value="P3">P3 - Medium</option>
               <option value="P4">P4 - Low</option>
+            </select>
+
+            <select
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+              className="input"
+              style={{ height: '34px', fontSize: '12px', padding: '4px 8px', borderRadius: '8px', fontWeight: '600' }}
+            >
+              <option value="ALL">All Bug Areas</option>
+              <option value="FRONTEND">FRONTEND</option>
+              <option value="BACKEND">BACKEND</option>
             </select>
           </div>
         </div>
@@ -854,17 +888,32 @@ export default function CycleAssignedBugsPage() {
                       No comments yet. Write a note to QA below.
                     </div>
                   ) : (
-                    bugComments.map((c) => (
-                      <div key={c.id} style={{ background: '#f8fafc', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12.5px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                          <span style={{ fontWeight: '700', fontSize: '12px' }}>{c.user?.name || 'User'}</span>
-                          <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)' }}>
-                            {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                    bugComments.map((c) => {
+                      const isQA = (c.user?.name || '').toLowerCase().includes('qa');
+                      return (
+                        <div key={c.id} style={{ background: '#f8fafc', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '10px 12px', fontSize: '12.5px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: '700', fontSize: '12px', color: 'var(--color-text)' }}>{c.user?.name || 'User'}</span>
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: isQA ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                                color: isQA ? '#059669' : '#4f46e5',
+                              }}>
+                                {isQA ? 'QA Tester' : 'Developer'}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)' }}>
+                              {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', lineHeight: '1.45' }}>{c.bodyMarkdown || c.content}</div>
                         </div>
-                        <div style={{ color: 'var(--color-text-secondary)' }}>{c.bodyMarkdown}</div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 

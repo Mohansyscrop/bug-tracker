@@ -4,6 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import cookieParser = require('cookie-parser');
 import { AppModule } from './app.module';
 
+// Safe BigInt JSON serialization
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
@@ -22,8 +27,9 @@ async function bootstrap() {
   );
 
   // CORS for the frontend
+  const frontendUrl = config.get('FRONTEND_URL', 'http://localhost:3000');
   app.enableCors({
-    origin: config.get('FRONTEND_URL', 'http://localhost:3000'),
+    origin: [frontendUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'],
     credentials: true,
   });
 

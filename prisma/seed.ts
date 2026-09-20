@@ -10,7 +10,7 @@ async function main() {
   const adminHash = await bcrypt.hash('Admin@12', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gmail.com' },
-    update: {},
+    update: { passwordHash: adminHash },
     create: {
       name: 'System Admin',
       email: 'admin@gmail.com',
@@ -22,19 +22,19 @@ async function main() {
   const devHash = await bcrypt.hash('Mohan@12', 12);
   const dev1 = await prisma.user.upsert({
     where: { email: 'mohan@gmail.com' },
-    update: {},
+    update: { passwordHash: devHash },
     create: { name: 'Mohan Developer', email: 'mohan@gmail.com', passwordHash: devHash },
   });
 
   const qa1 = await prisma.user.upsert({
     where: { email: 'bala@gmail.com' },
-    update: {},
+    update: { passwordHash: devHash },
     create: { name: 'Bala QA', email: 'bala@gmail.com', passwordHash: devHash },
   });
 
   const lead1 = await prisma.user.upsert({
     where: { email: 'pm@gmail.com' },
-    update: {},
+    update: { passwordHash: devHash },
     create: { name: 'PM', email: 'pm@gmail.com', passwordHash: devHash },
   });
 
@@ -54,29 +54,32 @@ async function main() {
     await prisma.projectKeySequence.create({ data: { projectKey: 'BT', lastSeq: 0 } });
   }
 
-  // Add project members
-  await prisma.projectMember.upsert({
-    where: { projectId_userId: { projectId: project.id, userId: admin.id } },
-    update: {},
-    create: { projectId: project.id, userId: admin.id, projectRole: 'LEAD' },
-  });
-  await prisma.projectMember.upsert({
-    where: { projectId_userId: { projectId: project.id, userId: dev1.id } },
-    update: {},
-    create: { projectId: project.id, userId: dev1.id, projectRole: 'DEV' },
-  });
-  await prisma.projectMember.upsert({
-    where: { projectId_userId: { projectId: project.id, userId: qa1.id } },
-    update: {},
-    create: { projectId: project.id, userId: qa1.id, projectRole: 'QA' },
-  });
-  await prisma.projectMember.upsert({
-    where: { projectId_userId: { projectId: project.id, userId: lead1.id } },
-    update: {},
-    create: { projectId: project.id, userId: lead1.id, projectRole: 'LEAD' },
-  });
+  // Add project members across all projects
+  const allProjects = await prisma.project.findMany({ where: { deletedAt: null } });
+  for (const p of allProjects) {
+    await prisma.projectMember.upsert({
+      where: { projectId_userId: { projectId: p.id, userId: admin.id } },
+      update: { projectRole: 'LEAD' },
+      create: { projectId: p.id, userId: admin.id, projectRole: 'LEAD' },
+    });
+    await prisma.projectMember.upsert({
+      where: { projectId_userId: { projectId: p.id, userId: lead1.id } },
+      update: { projectRole: 'LEAD' },
+      create: { projectId: p.id, userId: lead1.id, projectRole: 'LEAD' },
+    });
+    await prisma.projectMember.upsert({
+      where: { projectId_userId: { projectId: p.id, userId: qa1.id } },
+      update: { projectRole: 'QA' },
+      create: { projectId: p.id, userId: qa1.id, projectRole: 'QA' },
+    });
+    await prisma.projectMember.upsert({
+      where: { projectId_userId: { projectId: p.id, userId: dev1.id } },
+      update: { projectRole: 'DEV' },
+      create: { projectId: p.id, userId: dev1.id, projectRole: 'DEV' },
+    });
+  }
 
-  console.log('✅ Project members added');
+  console.log('✅ Project members added across all projects');
 
   // Create milestone if not exists
   let milestone = await prisma.milestone.findFirst({

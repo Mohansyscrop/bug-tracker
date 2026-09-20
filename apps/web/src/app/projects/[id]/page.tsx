@@ -18,6 +18,7 @@ import {
   Calendar,
   CheckCircle2,
   Trash2,
+  Pencil,
   X,
   Layers,
   ArrowRight,
@@ -34,7 +35,7 @@ export default function ProjectDetailPage() {
   const [stats, setStats] = useState<any>(null);
   const [cycles, setCycles] = useState<any[]>([]);
   const [requirements, setRequirements] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'cycles' | 'requirements'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'defects' | 'cycles' | 'requirements'>('overview');
   const [loading, setLoading] = useState(true);
 
   // Modals & Forms
@@ -43,6 +44,8 @@ export default function ProjectDetailPage() {
   const [addMemberUserId, setAddMemberUserId] = useState('');
   const [addMemberRole, setAddMemberRole] = useState('DEV');
   const [addingMember, setAddingMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<{ originalUserId: string; selectedUserId: string; role: string } | null>(null);
+  const [updatingRole, setUpdatingRole] = useState(false);
 
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState({ name: '', versionCode: '', releaseDate: '' });
@@ -63,14 +66,27 @@ export default function ProjectDetailPage() {
   const loadData = useCallback(async () => {
     if (!projectId) return;
     try {
-      const [p, b, s, cRes, rRes] = await Promise.all([
+      const [p, b, s, cRes, rRes, mRes, uRes] = await Promise.all([
         projectsApi.get(projectId),
-        bugsApi.list({ projectId, limit: 50 }),
+        bugsApi.list({ projectId, limit: 100 }),
         projectsApi.stats(projectId),
         testingCyclesApi.list(projectId).catch(() => []),
         testingCyclesApi.listRequirements(projectId).catch(() => []),
+        projectsApi.members(projectId).catch(() => ({ data: [] })),
+        usersApi.list().catch(() => ({ data: [] })),
       ]);
-      setProject(p.data);
+      const userList = Array.isArray(uRes) ? uRes : (uRes as any)?.data ?? [];
+      setAllUsers(userList);
+      const projectData = p?.data ? { ...p.data } : null;
+      if (projectData) {
+        const fetchedMembers = Array.isArray(mRes) ? mRes : (mRes as any)?.data;
+        if (Array.isArray(fetchedMembers) && fetchedMembers.length > 0) {
+          projectData.members = fetchedMembers;
+        } else if (!projectData.members) {
+          projectData.members = [];
+        }
+      }
+      setProject(projectData);
       setBugs(b.data);
       setStats(s.data);
       setCycles(Array.isArray(cRes) ? cRes : (cRes as any).data ?? []);
@@ -84,6 +100,29 @@ export default function ProjectDetailPage() {
     loadData();
   }, [loadData]);
 
+  const getUserDefaultRole = (userId: string): string => {
+    // 1. Check if user already has a role in this project
+    const projectMem = project?.members?.find((m: any) => m.userId === userId);
+    if (projectMem?.projectRole) return projectMem.projectRole;
+
+    // 2. Check user's projectMembers from allUsers
+    const u = allUsers.find((user: any) => user.id === userId);
+    if (u) {
+      if (u.projectMembers && u.projectMembers.length > 0) {
+        const pmRole = u.projectMembers.find((pm: any) => pm.projectId === projectId)?.projectRole
+          || u.projectMembers[0]?.projectRole;
+        if (pmRole) return pmRole;
+      }
+      // 3. Infer from name, email or globalRole
+      const lower = `${u.name} ${u.email}`.toLowerCase();
+      if (lower.includes('lead') || lower.includes('pm') || u.globalRole === 'ADMIN') return 'LEAD';
+      if (lower.includes('qa') || lower.includes('test')) return 'QA';
+      if (lower.includes('dev')) return 'DEV';
+    }
+
+    return 'DEV';
+  };
+
   // Load all users when opening member modal
   const handleOpenAddMember = async () => {
     setShowAddMember(true);
@@ -94,7 +133,9 @@ export default function ProjectDetailPage() {
       const memberIds = new Set(project?.members?.map((m: any) => m.userId) ?? []);
       const available = list.filter((u: any) => !memberIds.has(u.id));
       if (available.length > 0) {
-        setAddMemberUserId(available[0].id);
+        const defaultId = available[0].id;
+        setAddMemberUserId(defaultId);
+        setAddMemberRole(getUserDefaultRole(defaultId));
       }
     } catch {
       // ignore
@@ -121,14 +162,60 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'LEAD':
+        return { label: 'LEAD', desc: 'Tech / QA Lead', bg: 'rgba(245, 158, 11, 0.12)', color: '#d97706', border: 'rgba(245, 158, 11, 0.28)' };
+      case 'QA':
+        return { label: 'QA', desc: 'Test Engineer', bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: 'rgba(16, 185, 129, 0.28)' };
+      case 'DEV':
+        return { label: 'DEV', desc: 'Developer', bg: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', border: 'rgba(99, 102, 241, 0.28)' };
+      case 'VIEWER':
+      default:
+        return { label: 'VIEWER', desc: 'Read Only', bg: 'var(--color-surface-2)', color: 'var(--color-text-muted)', border: 'var(--color-border)' };
+    }
+  };
+
+  const handleOpenEditMember = (m: any) => {
+    setEditingMember({
+      originalUserId: m.userId,
+      selectedUserId: m.userId,
+      role: m.projectRole,
+    });
+  };
+
+  const handleSaveMemberEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setUpdatingRole(true);
     setFeedback(null);
     try {
-      await projectsApi.updateMemberRole(projectId, userId, newRole);
-      setFeedback({ type: 'success', message: `Updated member role to ${newRole}` });
+      if (editingMember.originalUserId === editingMember.selectedUserId) {
+        // Just update role
+        await projectsApi.updateMemberRole(projectId, editingMember.selectedUserId, editingMember.role);
+        const selUser = allUsers.find((u) => u.id === editingMember.selectedUserId);
+        setFeedback({ type: 'success', message: `Updated ${selUser?.name || 'member'}'s role to ${editingMember.role}` });
+      } else {
+        // Member changed: check if selected user is already in project
+        const alreadyMember = project?.members?.some((m: any) => m.userId === editingMember.selectedUserId);
+        if (alreadyMember) {
+          await projectsApi.updateMemberRole(projectId, editingMember.selectedUserId, editingMember.role);
+        } else {
+          await projectsApi.addMember(projectId, {
+            userId: editingMember.selectedUserId,
+            projectRole: editingMember.role,
+          });
+        }
+        await projectsApi.removeMember(projectId, editingMember.originalUserId);
+        const selUser = allUsers.find((u) => u.id === editingMember.selectedUserId);
+        setFeedback({ type: 'success', message: `Updated team member to ${selUser?.name || 'user'} (${editingMember.role})` });
+      }
+      setEditingMember(null);
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to update member role' });
+      setFeedback({ type: 'error', message: err.message ?? 'Failed to update member' });
+    } finally {
+      setUpdatingRole(false);
     }
   };
 
@@ -299,6 +386,7 @@ export default function ProjectDetailPage() {
         }}>
           {[
             { id: 'overview', label: 'Overview & Team', icon: Users },
+            { id: 'defects', label: `Defects (${bugs.length})`, icon: Bug },
             { id: 'cycles', label: `Testing Cycles (${cycles.length})`, icon: RotateCcw },
             { id: 'requirements', label: `Requirements (${requirements.length})`, icon: FileText },
           ].map((tab) => {
@@ -379,56 +467,81 @@ export default function ProjectDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(project?.members || []).map((m: any) => (
-                      <tr key={m.userId}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div className="avatar" style={{ width: '24px', height: '24px', fontSize: '10px' }}>
-                              {m.user?.name?.slice(0, 2).toUpperCase() || 'U'}
-                            </div>
-                            <span style={{ fontWeight: '600', color: 'var(--color-text)', fontSize: '13px' }}>
-                              {m.user?.name}
-                            </span>
-                          </div>
+                    {(!project?.members || project.members.length === 0) ? (
+                      <tr>
+                        <td colSpan={canManage ? 4 : 3} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                          No team members assigned to this project yet.{' '}
+                          {canManage && 'Click "+ Add Team Member" to assign people.'}
                         </td>
-                        <td style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-                          {m.user?.email}
-                        </td>
-                        <td>
-                          {canManage && m.userId !== user?.id ? (
-                            <select
-                              className="select"
-                              style={{ width: '130px', fontSize: '12px', padding: '4px 24px 4px 8px' }}
-                              value={m.projectRole}
-                              onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                            >
-                              <option value="LEAD">LEAD (QA / Tech Lead)</option>
-                              <option value="QA">QA (Test Engineer)</option>
-                              <option value="DEV">DEV (Developer)</option>
-                              <option value="VIEWER">VIEWER (Read Only)</option>
-                            </select>
-                          ) : (
-                            <span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-muted)' }}>
-                              {m.projectRole}
-                            </span>
-                          )}
-                        </td>
-                        {canManage && (
-                          <td style={{ textAlign: 'right' }}>
-                            {m.userId !== user?.id && (
-                              <button
-                                className="btn btn-ghost btn-sm"
-                                onClick={() => handleRemoveMember(m.userId, m.user?.name)}
-                                style={{ color: 'var(--color-danger)', padding: '4px 8px' }}
-                                title="Remove from project"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
-                          </td>
-                        )}
                       </tr>
-                    ))}
+                    ) : (
+                      project.members.map((m: any) => {
+                        const badge = getRoleBadge(m.projectRole);
+                        return (
+                          <tr key={m.userId || m.id}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div className="avatar" style={{ width: '24px', height: '24px', fontSize: '10px' }}>
+                                  {m.user?.name?.slice(0, 2).toUpperCase() || 'U'}
+                                </div>
+                                <span style={{ fontWeight: '600', color: 'var(--color-text)', fontSize: '13px' }}>
+                                  {m.user?.name || 'Unnamed User'}
+                                </span>
+                              </div>
+                            </td>
+                            <td style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
+                              {m.user?.email || '—'}
+                            </td>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  background: badge.bg,
+                                  color: badge.color,
+                                  border: `1px solid ${badge.border}`,
+                                  fontWeight: '600',
+                                  fontSize: '11.5px',
+                                  padding: '3px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                {badge.label}
+                                <span style={{ fontSize: '10px', opacity: 0.75, fontWeight: '400' }}>
+                                  ({badge.desc})
+                                </span>
+                              </span>
+                            </td>
+                            {canManage && (
+                              <td style={{ textAlign: 'right' }}>
+                                {m.userId !== user?.id && (
+                                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => handleOpenEditMember(m)}
+                                      style={{ color: 'var(--color-text-muted)', padding: '4px 8px' }}
+                                      title="Edit member & role"
+                                    >
+                                      <Pencil size={13} />
+                                    </button>
+                                    <button
+                                      className="btn btn-ghost btn-sm"
+                                      onClick={() => handleRemoveMember(m.userId, m.user?.name)}
+                                      style={{ color: 'var(--color-danger)', padding: '4px 8px' }}
+                                      title="Remove from project"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -484,7 +597,102 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {/* TAB 2: TESTING CYCLES */}
+        {/* TAB 2: DEFECTS */}
+        {activeTab === 'defects' && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>
+                  Project Defects ({bugs.length})
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  All reported defects for {project?.name} with assignee and role visibility.
+                </p>
+              </div>
+
+              <Link href={`/bugs/new?projectId=${projectId}`} className="btn btn-primary btn-sm">
+                <PlusCircle size={14} />
+                <span>Report Defect</span>
+              </Link>
+            </div>
+
+            {bugs.length === 0 ? (
+              <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                No defects logged for this project yet. Click &quot;Report Defect&quot; to log a bug.
+              </div>
+            ) : (
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Key</th>
+                      <th>Title</th>
+                      <th>Severity</th>
+                      <th>Priority</th>
+                      <th>Status</th>
+                      <th>Assignee & Project Role</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bugs.map((b: any) => {
+                      const assigneeMember = project?.members?.find((m: any) => m.userId === b.assignedToId);
+                      const assigneeRole = assigneeMember ? getRoleBadge(assigneeMember.projectRole) : null;
+                      return (
+                        <tr key={b.id}>
+                          <td>
+                            <Link href={`/bugs/${b.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                              <code>{b.issueKey}</code>
+                            </Link>
+                          </td>
+                          <td>
+                            <Link href={`/bugs/${b.id}`} style={{ color: 'var(--color-text)', fontWeight: '500' }}>
+                              {b.title}
+                            </Link>
+                          </td>
+                          <td>
+                            <span className="badge badge-low">{b.severity}</span>
+                          </td>
+                          <td>
+                            <span className="badge">{b.priority}</span>
+                          </td>
+                          <td>
+                            <span className="badge badge-status-fixed">{b.status}</span>
+                          </td>
+                          <td>
+                            {b.assignedTo ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '12.5px', fontWeight: '500' }}>{b.assignedTo.name}</span>
+                                {assigneeRole && (
+                                  <span
+                                    className="badge"
+                                    style={{
+                                      background: assigneeRole.bg,
+                                      color: assigneeRole.color,
+                                      border: `1px solid ${assigneeRole.border}`,
+                                      fontSize: '10.5px',
+                                      padding: '1px 6px',
+                                      fontWeight: '600',
+                                    }}
+                                  >
+                                    {assigneeRole.label}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>Unassigned</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: TESTING CYCLES */}
         {activeTab === 'cycles' && (
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
@@ -629,21 +837,40 @@ export default function ProjectDetailPage() {
           </div>
           <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label className="label">Select User *</label>
+              <label className="label">Select Team Member *</label>
               {availableUsers.length === 0 ? (
                 <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>All available registered users are already in this project.</p>
               ) : (
                 <select
                   className="select"
                   value={addMemberUserId}
-                  onChange={(e) => setAddMemberUserId(e.target.value)}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setAddMemberUserId(newId);
+                    setAddMemberRole(getUserDefaultRole(newId));
+                  }}
                   required
                 >
                   {availableUsers.map((u: any) => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                    <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </select>
               )}
+            </div>
+
+            <div>
+              <label className="label">Email Address</label>
+              <input
+                className="input"
+                type="email"
+                value={allUsers.find((u) => u.id === addMemberUserId)?.email || ''}
+                readOnly
+                disabled
+                style={{ background: 'var(--color-surface-2)', cursor: 'not-allowed', color: 'var(--color-text)' }}
+              />
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '3px', display: 'block' }}>
+                Email address automatically updates when the team member is selected.
+              </span>
             </div>
 
             <div>
@@ -659,6 +886,9 @@ export default function ProjectDetailPage() {
                 <option value="LEAD">LEAD — QA / Tech Lead</option>
                 <option value="VIEWER">VIEWER — Read Only</option>
               </select>
+              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '3px', display: 'block' }}>
+                Role is automatically fetched from the member profile.
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
@@ -670,6 +900,87 @@ export default function ProjectDetailPage() {
               </button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal: Edit Member & Role */}
+        <Modal isOpen={!!editingMember} onClose={() => setEditingMember(null)} maxWidth="460px">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '700', margin: 0, color: 'var(--color-text)' }}>
+              Edit Project Member & Role
+            </h2>
+            <button className="btn btn-ghost btn-icon" onClick={() => setEditingMember(null)}>
+              <X size={15} />
+            </button>
+          </div>
+          {editingMember && (
+            <form onSubmit={handleSaveMemberEdit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="label">Team Member *</label>
+                <select
+                  className="select"
+                  value={editingMember.selectedUserId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    const autoRole = getUserDefaultRole(newId);
+                    setEditingMember({
+                      ...editingMember,
+                      selectedUserId: newId,
+                      role: autoRole,
+                    });
+                  }}
+                  required
+                >
+                  {allUsers.map((u: any) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} {u.id === editingMember.originalUserId ? '(Current Member)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label">Email Address</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={allUsers.find((u) => u.id === editingMember.selectedUserId)?.email || ''}
+                  readOnly
+                  disabled
+                  style={{ background: 'var(--color-surface-2)', cursor: 'not-allowed', color: 'var(--color-text)' }}
+                />
+                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '3px', display: 'block' }}>
+                  Email address automatically updates when the team member is selected.
+                </span>
+              </div>
+
+              <div>
+                <label className="label">Project Role *</label>
+                <select
+                  className="select"
+                  value={editingMember.role}
+                  onChange={(e) => setEditingMember({ ...editingMember, role: e.target.value })}
+                  required
+                >
+                  <option value="DEV">DEV — Developer</option>
+                  <option value="QA">QA — Test Engineer</option>
+                  <option value="LEAD">LEAD — QA / Tech Lead</option>
+                  <option value="VIEWER">VIEWER — Read Only</option>
+                </select>
+                <span style={{ fontSize: '11px', color: 'var(--color-text-faint)', marginTop: '3px', display: 'block' }}>
+                  Role is automatically fetched from the member profile.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingMember(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={updatingRole}>
+                  {updatingRole ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          )}
         </Modal>
 
         {/* Modal: Add Milestone */}

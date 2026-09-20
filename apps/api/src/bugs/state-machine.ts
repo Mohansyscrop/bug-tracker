@@ -48,13 +48,15 @@ export const BUG_STATE_TRANSITIONS: Record<BugStatus, Partial<Record<Role, BugSt
     ADMIN: [BugStatus.ASSIGNED, BugStatus.CLOSED],
   },
   [BugStatus.FIXED]: {
-    QA: [BugStatus.RETEST],
-    LEAD: [BugStatus.RETEST],
-    ADMIN: [BugStatus.RETEST, BugStatus.CLOSED],
+    QA: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
+    LEAD: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
+    DEV: [BugStatus.RETEST, BugStatus.CLOSED],
+    ADMIN: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.RETEST]: {
     QA: [BugStatus.CLOSED, BugStatus.REOPENED],
     LEAD: [BugStatus.CLOSED, BugStatus.REOPENED],
+    DEV: [BugStatus.CLOSED, BugStatus.REOPENED],
     ADMIN: [BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.REOPENED]: {

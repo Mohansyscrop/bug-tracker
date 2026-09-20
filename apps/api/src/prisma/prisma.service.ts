@@ -10,8 +10,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.$connect();
-
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await this.$connect();
+        break;
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+        console.warn(`[PrismaService] Database connection failed, retrying in 2s... (${retries} retries left)`);
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
   }
 
   async onModuleDestroy() {

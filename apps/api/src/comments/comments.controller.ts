@@ -1,8 +1,11 @@
 import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { CommentsService } from './comments.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 export class CreateCommentDto {
+  @IsString()
+  @IsNotEmpty()
   bodyMarkdown: string;
 }
 

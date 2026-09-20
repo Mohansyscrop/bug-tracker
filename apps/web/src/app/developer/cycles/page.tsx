@@ -80,6 +80,7 @@ export default function DeveloperAllCyclesPage() {
         };
       })
       .filter((cycle) => {
+        if (cycle.status === 'PLANNED') return false;
         if (cycle.devBugsCount === 0) return false;
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();

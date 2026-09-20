@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--color-bg)',
+        backgroundColor: 'var(--color-bg)',
         backgroundImage: 'radial-gradient(at 30% 40%, rgba(99,102,241,0.08) 0px, transparent 55%)',
       }}>
         <div style={{ textAlign: 'center' }}>

@@ -166,7 +166,7 @@ export default function TestingCycleDetailPage() {
         // Automatically pop up defect logging modal pre-filled with test details
         setBugForm({
           title: `[${cycle.name}] ${testCaseObj.title} - Failed verification`,
-          bugArea: testCaseObj.type === 'REGRESSION' ? 'REGRESSION' : 'FRONTEND',
+          bugArea: 'FRONTEND',
           severity: 'HIGH',
           priority: 'P1',
           stepsToReproduce: testCaseObj.steps || '',
@@ -591,8 +591,7 @@ export default function TestingCycleDetailPage() {
             {/* Technical Area Filter Pills */}
             <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '14px' }}>
               {[
-                'ALL', 'FRONTEND', 'BACKEND', 'DATABASE', 'API',
-                'INTEGRATION', 'UI_UX', 'PERFORMANCE', 'SECURITY', 'REGRESSION'
+                'ALL', 'FRONTEND', 'BACKEND'
               ].map((area) => (
                 <button
                   key={area}
@@ -919,15 +918,8 @@ export default function TestingCycleDetailPage() {
                   value={bugForm.bugArea}
                   onChange={(e) => setBugForm((f) => ({ ...f, bugArea: e.target.value }))}
                 >
-                  <option value="FRONTEND">FRONTEND (Client-side UI / JS)</option>
-                  <option value="BACKEND">BACKEND (Server / Service)</option>
-                  <option value="API">API (REST / Endpoints)</option>
-                  <option value="DATABASE">DATABASE (SQL / Query / Data)</option>
-                  <option value="INTEGRATION">INTEGRATION (Third-party)</option>
-                  <option value="UI_UX">UI / UX (Styling / Layout)</option>
-                  <option value="PERFORMANCE">PERFORMANCE (Latency / Load)</option>
-                  <option value="SECURITY">SECURITY (Auth / Vulnerability)</option>
-                  <option value="REGRESSION">REGRESSION (Previously working feature)</option>
+                  <option value="FRONTEND">FRONTEND</option>
+                  <option value="BACKEND">BACKEND</option>
                 </select>
               </div>
 

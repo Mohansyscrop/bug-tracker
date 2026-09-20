@@ -1,7 +1,7 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
-import { useState, useEffect } from 'react';
-import { bugsApi, projectsApi, testingCyclesApi } from '@/lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { bugsApi, projectsApi, testingCyclesApi, attachmentsApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -13,10 +13,15 @@ import {
   Layers,
   FileText,
   ShieldAlert,
+  ImagePlus,
+  UploadCloud,
+  X,
+  FileImage,
 } from 'lucide-react';
 
 export default function NewBugPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<any[]>([]);
@@ -24,7 +29,13 @@ export default function NewBugPage() {
   const [cycles, setCycles] = useState<any[]>([]);
   const [requirements, setRequirements] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [error, setError] = useState('');
+
+  // Attachments / Screenshots state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<{ file: File; url: string; id: string }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const [form, setForm] = useState({
     projectId: '',
@@ -69,6 +80,64 @@ export default function NewBugPage() {
     });
   }, [form.projectId]);
 
+  // Support clipboard paste (Ctrl+V) for screenshots directly onto the page
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      if (!e.clipboardData) return;
+      const items = Array.from(e.clipboardData.items);
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            const pastedFile = new File(
+              [file],
+              `screenshot-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.png`,
+              { type: file.type }
+            );
+            files.push(pastedFile);
+          }
+        }
+      }
+      if (files.length > 0) {
+        handleAddFiles(files);
+      }
+    }
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [selectedFiles.length]);
+
+  function handleAddFiles(newFiles: FileList | File[]) {
+    const validImages = Array.from(newFiles).filter((file) =>
+      file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
+    );
+    if (validImages.length === 0) return;
+
+    const remainingSlots = 10 - selectedFiles.length;
+    if (remainingSlots <= 0) return;
+    const toAdd = validImages.slice(0, remainingSlots);
+
+    const newPreviews = toAdd.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+      id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
+    }));
+
+    setSelectedFiles((prev) => [...prev, ...toAdd]);
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
+  }
+
+  function handleRemoveFile(index: number) {
+    if (filePreviews[index]) {
+      URL.revokeObjectURL(filePreviews[index].url);
+    }
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -77,6 +146,7 @@ export default function NewBugPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setUploadStatus('');
     try {
       const payload: any = { ...form };
       if (!payload.componentId) delete payload.componentId;
@@ -87,10 +157,21 @@ export default function NewBugPage() {
       if (!payload.requirementId) delete payload.requirementId;
 
       const res = await bugsApi.create(payload);
-      router.push(`/bugs/${res.data.id}`);
+      const createdBugId = (res as any)?.data?.id || (res as any)?.id;
+
+      // If user selected visual evidence images, upload them
+      if (selectedFiles.length > 0 && createdBugId) {
+        setUploadStatus(`Uploading ${selectedFiles.length} visual evidence screenshot${selectedFiles.length > 1 ? 's' : ''}...`);
+        try {
+          await attachmentsApi.upload(createdBugId, selectedFiles);
+        } catch (uploadErr: any) {
+          console.error('Failed to upload attachments:', uploadErr);
+        }
+      }
+
+      router.push(`/bugs/${createdBugId}`);
     } catch (err: any) {
       setError(err.message ?? 'Failed to log defect');
-    } finally {
       setLoading(false);
     }
   }
@@ -177,15 +258,8 @@ export default function NewBugPage() {
                   onChange={(e) => update('bugArea', e.target.value)}
                   required
                 >
-                  <option value="FRONTEND">FRONTEND (Client-side UI / JS / Flow)</option>
-                  <option value="BACKEND">BACKEND (Server / Business Logic)</option>
-                  <option value="API">API (REST Endpoints / Schema)</option>
-                  <option value="DATABASE">DATABASE (SQL / Data / Integrity)</option>
-                  <option value="INTEGRATION">INTEGRATION (Third-party Services)</option>
-                  <option value="UI_UX">UI / UX (Styling / Responsiveness)</option>
-                  <option value="PERFORMANCE">PERFORMANCE (Speed / Latency)</option>
-                  <option value="SECURITY">SECURITY (Auth / Vulnerability)</option>
-                  <option value="REGRESSION">REGRESSION (Broken Existing Feature)</option>
+                  <option value="FRONTEND">FRONTEND</option>
+                  <option value="BACKEND">BACKEND</option>
                 </select>
               </div>
 
@@ -261,6 +335,233 @@ export default function NewBugPage() {
                   value={form.description}
                   onChange={(e) => update('description', e.target.value)}
                 />
+              </div>
+
+              {/* Defect Screenshots & Visual Proof (QA Upload) */}
+              <div style={{
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: 'var(--color-text)',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}>
+                    <ImagePlus size={15} color="var(--color-primary)" />
+                    <span>Defect Screenshots & Visual Proof (QA Upload)</span>
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                    {selectedFiles.length}/10 attached
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: 0, marginBottom: '10px' }}>
+                  Upload visual evidence, error dialogs, or UI defects for developers to inspect.
+                </p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      handleAddFiles(e.target.files);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+
+                {/* Dropzone */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files) {
+                      handleAddFiles(e.dataTransfer.files);
+                    }
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: isDragging ? '2px dashed var(--color-primary)' : '2px dashed var(--color-border)',
+                    background: isDragging ? 'rgba(99, 102, 241, 0.08)' : 'var(--color-surface)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '20px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: isDragging ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface-2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 8px',
+                    color: isDragging ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    border: '1px solid var(--color-border)',
+                  }}>
+                    <UploadCloud size={18} />
+                  </div>
+
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '3px' }}>
+                    Click to browse or drag and drop screenshots here
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
+                    PNG, JPG, WEBP, GIF, SVG (up to 15MB each)
+                  </div>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    color: 'var(--color-primary)',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                  }}>
+                    <span>💡 Tip: You can also paste screenshots directly from your clipboard (Ctrl + V)</span>
+                  </div>
+                </div>
+
+                {/* Previews Grid */}
+                {filePreviews.length > 0 && (
+                  <div style={{ marginTop: '14px' }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+                      Ready to upload with defect ({filePreviews.length}):
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                      gap: '10px',
+                    }}>
+                      {filePreviews.map((preview, index) => (
+                        <div
+                          key={preview.id}
+                          style={{
+                            position: 'relative',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-md)',
+                            overflow: 'hidden',
+                            background: 'var(--color-surface)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          <div style={{
+                            height: '90px',
+                            width: '100%',
+                            position: 'relative',
+                            background: '#0d1117',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={preview.url}
+                              alt={preview.file.name}
+                              style={{
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                objectFit: 'contain',
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFile(index);
+                              }}
+                              title="Remove image"
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: 'rgba(0, 0, 0, 0.75)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                color: '#ffffff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+
+                          <div style={{ padding: '6px 8px', borderTop: '1px solid var(--color-border)' }}>
+                            <div
+                              title={preview.file.name}
+                              style={{
+                                fontSize: '10.5px',
+                                fontWeight: '600',
+                                color: 'var(--color-text)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {preview.file.name}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'var(--color-text-faint)', marginTop: '2px' }}>
+                              {preview.file.size > 1024 * 1024
+                                ? `${(preview.file.size / (1024 * 1024)).toFixed(1)} MB`
+                                : `${Math.round(preview.file.size / 1024)} KB`}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {filePreviews.length < 10 && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            height: '122px',
+                            border: '1px dashed var(--color-border)',
+                            borderRadius: 'var(--radius-md)',
+                            background: 'transparent',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            color: 'var(--color-text-muted)',
+                          }}
+                        >
+                          <ImagePlus size={16} />
+                          <span style={{ fontSize: '11px', fontWeight: '500' }}>+ Add More</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -397,7 +698,7 @@ export default function NewBugPage() {
               disabled={loading || !form.title.trim()}
             >
               <PlusCircle size={15} />
-              <span>{loading ? 'Submitting Defect...' : 'Create Defect'}</span>
+              <span>{uploadStatus || (loading ? 'Submitting Defect...' : 'Create Defect')}</span>
             </button>
           </div>
         </form>

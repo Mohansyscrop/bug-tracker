@@ -13,7 +13,7 @@ export class ProjectsController {
 
   @Get()
   listProjects(@CurrentUser() user: any) {
-    return this.svc.listProjectsForUser(user.id);
+    return this.svc.listProjectsForUser(user.id, user.globalRole);
   }
 
   @Post()

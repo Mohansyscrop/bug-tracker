@@ -95,9 +95,9 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="card" style={{ padding: '30px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)' }}>
+        <div className="card" suppressHydrationWarning style={{ padding: '30px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)' }}>
           {/* Mode toggle */}
-          <div style={{
+          <div suppressHydrationWarning style={{
             display: 'flex',
             background: 'rgba(30, 41, 59, 0.65)',
             borderRadius: 'var(--radius-md)',
@@ -125,7 +125,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <form onSubmit={handleSubmit} suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {mode === 'register' && (
               <div>
                 <label className="label">Full Name</label>

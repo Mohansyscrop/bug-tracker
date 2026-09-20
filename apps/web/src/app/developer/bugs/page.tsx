@@ -49,6 +49,7 @@ export default function DeveloperAllBugsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [areaFilter, setAreaFilter] = useState('ALL');
 
   // Status transition state
   const [transitioningBugId, setTransitioningBugId] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export default function DeveloperAllBugsPage() {
     return assignedBugs.filter((bug) => {
       if (statusFilter !== 'ALL' && bug.status !== statusFilter) return false;
       if (priorityFilter !== 'ALL' && bug.priority !== priorityFilter) return false;
+      if (areaFilter !== 'ALL' && bug.bugArea !== areaFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const mKey = bug.issueKey?.toLowerCase().includes(q);
@@ -99,7 +101,7 @@ export default function DeveloperAllBugsPage() {
       }
       return true;
     });
-  }, [assignedBugs, statusFilter, priorityFilter, searchQuery]);
+  }, [assignedBugs, statusFilter, priorityFilter, areaFilter, searchQuery]);
 
   const handleDirectTransition = async (bug: BugItem, nextStatus: string) => {
     setTransitioningBugId(bug.id);
@@ -323,6 +325,17 @@ export default function DeveloperAllBugsPage() {
               <option value="P3">P3 - Medium</option>
               <option value="P4">P4 - Low</option>
             </select>
+
+            <select
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+              className="input"
+              style={{ height: '36px', fontSize: '12px', padding: '4px 10px', borderRadius: '8px', fontWeight: '600' }}
+            >
+              <option value="ALL">All Bug Areas</option>
+              <option value="FRONTEND">FRONTEND</option>
+              <option value="BACKEND">BACKEND</option>
+            </select>
           </div>
         </div>
 
@@ -343,201 +356,244 @@ export default function DeveloperAllBugsPage() {
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {displayedBugs.map((bug) => {
-              const statusStyle = getStatusBadge(bug.status);
-              const isTransitioning = transitioningBugId === bug.id;
+          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '14px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '50px', textAlign: 'center' }}>S.No</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '90px' }}>Key</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Defect Title</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '150px' }}>Testing Cycle</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '100px' }}>Severity</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '80px' }}>Priority</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '130px' }}>Status</th>
+                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', textAlign: 'right', minWidth: '170px' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedBugs.map((bug, index) => {
+                    const statusStyle = getStatusBadge(bug.status);
+                    const isTransitioning = transitioningBugId === bug.id;
 
-              return (
-                <div
-                  key={bug.id}
-                  className="card"
-                  style={{
-                    padding: '22px 24px',
-                    borderRadius: '14px',
-                    border: '1px solid var(--color-border)',
-                    boxShadow: 'var(--shadow-sm)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '14px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{
-                        fontFamily: 'monospace',
-                        fontSize: '12px',
-                        fontWeight: '800',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        background: 'rgba(99, 102, 241, 0.12)',
-                        color: '#4f46e5',
-                      }}>
-                        {bug.issueKey}
-                      </span>
-                      {bug.bugArea && (
-                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '2.5px 7px', borderRadius: '5px', background: '#f1f5f9', color: '#334155', textTransform: 'uppercase' }}>
-                          {bug.bugArea}
-                        </span>
-                      )}
-                      <span style={{ fontSize: '11px', fontWeight: '700', padding: '2.5px 7px', borderRadius: '5px', background: bug.priority === 'P1' ? '#fee2e2' : '#e0e7ff', color: bug.priority === 'P1' ? '#b91c1c' : '#4338ca' }}>
-                        {bug.priority}
-                      </span>
-                      <span style={{ fontSize: '11px', fontWeight: '700', padding: '2.5px 7px', borderRadius: '5px', background: bug.severity === 'CRITICAL' ? '#fee2e2' : '#fef3c7', color: bug.severity === 'CRITICAL' ? '#991b1b' : '#92400e' }}>
-                        {bug.severity}
-                      </span>
-                      {bug.testingCycle && (
-                        <Link
-                          href={`/developer/cycles/${bug.testingCycle.id}/bugs`}
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            color: '#4f46e5',
-                            background: 'rgba(99, 102, 241, 0.08)',
-                            padding: '2px 8px',
-                            borderRadius: '5px',
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <RotateCcw size={11} />
-                          <span>{bug.testingCycle.name}</span>
-                        </Link>
-                      )}
-                    </div>
-
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '3px 10px',
-                      borderRadius: '20px',
-                      background: statusStyle.bg,
-                      border: `1px solid ${statusStyle.border}`,
-                      color: statusStyle.text,
-                      fontSize: '12px',
-                      fontWeight: '700',
-                    }}>
-                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: statusStyle.text }} />
-                      <span>{statusStyle.label}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3
-                      onClick={() => handleOpenInspect(bug)}
-                      style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text)', margin: '0 0 6px', cursor: 'pointer', display: 'inline-block' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#4f46e5')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text)')}
-                    >
-                      {bug.title}
-                    </h3>
-                    {bug.description && (
-                      <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0, lineHeight: '1.5' }}>
-                        {bug.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--color-border)',
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenInspect(bug)}
-                      style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: '600', fontSize: '12.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', padding: 0 }}
-                    >
-                      <Info size={14} />
-                      <span>Repro Steps & Comments</span>
-                    </button>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      {(bug.status === 'ASSIGNED' || bug.status === 'NEW' || bug.status === 'REOPENED') && (
-                        <button
-                          type="button"
-                          disabled={isTransitioning}
-                          onClick={() => handleDirectTransition(bug, 'IN_PROGRESS')}
-                          className="btn btn-primary btn-sm"
-                          style={{ fontSize: '12px', fontWeight: '700', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          <PlayCircle size={14} />
-                          <span>{isTransitioning ? 'Updating...' : 'Start Progress'}</span>
-                        </button>
-                      )}
-
-                      {bug.status === 'IN_PROGRESS' && (
-                        <>
-                          <button
-                            type="button"
-                            disabled={isTransitioning}
-                            onClick={() => handleDirectTransition(bug, 'FIXED')}
-                            className="btn btn-sm"
-                            style={{
-                              background: '#10b981',
-                              color: '#ffffff',
-                              border: 'none',
-                              fontSize: '12px',
-                              fontWeight: '700',
-                              padding: '6px 12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}
-                          >
-                            <CheckCircle2 size={14} />
-                            <span>{isTransitioning ? 'Updating...' : 'Mark as Fixed'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isTransitioning}
-                            onClick={() => openTransitionModal(bug, 'CANNOT_REPRODUCE')}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '11.5px', padding: '5px 10px', color: '#d97706' }}
-                          >
-                            <HelpCircle size={13} />
-                            <span>Cannot Reproduce</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={isTransitioning}
-                            onClick={() => openTransitionModal(bug, 'REJECTED')}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '11.5px', padding: '5px 10px', color: '#dc2626' }}
-                          >
-                            <XCircle size={13} />
-                            <span>Reject</span>
-                          </button>
-                        </>
-                      )}
-
-                      {(bug.status === 'FIXED' || bug.status === 'CLOSED') && (
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle2 size={14} />
-                          <span>Ready for QA Retest</span>
-                        </span>
-                      )}
-
-                      <Link
-                        href={`/bugs/${bug.id}`}
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: '11.5px', padding: '5px 8px', color: 'var(--color-text-muted)' }}
-                        title="Open Full Defect Record"
+                    return (
+                      <tr
+                        key={bug.id}
+                        style={{
+                          borderBottom: '1px solid var(--color-border)',
+                          transition: 'background 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <ExternalLink size={13} />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                        {/* Serial Number */}
+                        <td style={{ padding: '14px', textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
+
+                        {/* Issue Key */}
+                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            fontFamily: 'monospace',
+                            fontSize: '11.5px',
+                            fontWeight: '800',
+                            padding: '3px 8px',
+                            borderRadius: '5px',
+                            background: 'rgba(99, 102, 241, 0.12)',
+                            color: '#4f46e5',
+                          }}>
+                            {bug.issueKey}
+                          </span>
+                        </td>
+
+                        {/* Defect Title & Technical Area */}
+                        <td style={{ padding: '14px' }}>
+                          <Link
+                            href={`/bugs/${bug.id}`}
+                            style={{
+                              fontWeight: '700',
+                              color: 'var(--color-text)',
+                              textDecoration: 'none',
+                              fontSize: '13px',
+                              display: 'block',
+                              marginBottom: '3px',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-primary)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text)')}
+                          >
+                            {bug.title}
+                          </Link>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {bug.bugArea && (
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: '#f1f5f9',
+                                color: '#475569',
+                                textTransform: 'uppercase',
+                              }}>
+                                {bug.bugArea}
+                              </span>
+                            )}
+                            {bug.project?.name && (
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>
+                                {bug.project.name}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Testing Cycle */}
+                        <td style={{ padding: '14px', fontSize: '12px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                          {bug.testingCycle ? (
+                            <Link
+                              href={`/developer/cycles/${bug.testingCycle.id}/bugs`}
+                              style={{
+                                color: 'var(--color-primary)',
+                                textDecoration: 'none',
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <RotateCcw size={11} />
+                              <span>{bug.testingCycle.name.split('—')[0]}</span>
+                            </Link>
+                          ) : (
+                            <span style={{ color: 'var(--color-text-faint)' }}>—</span>
+                          )}
+                        </td>
+
+                        {/* Severity */}
+                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                          <span className={`badge badge-${bug.severity.toLowerCase()}`} style={{ fontSize: '10.5px' }}>
+                            {bug.severity}
+                          </span>
+                        </td>
+
+                        {/* Priority */}
+                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                          <span className={`badge badge-${bug.priority.toLowerCase()}`} style={{ fontSize: '10.5px' }}>
+                            {bug.priority}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '3px 8px',
+                            borderRadius: '20px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            background: statusStyle.bg,
+                            color: statusStyle.text,
+                            border: `1px solid ${statusStyle.border}`,
+                          }}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: statusStyle.text }} />
+                            <span>{statusStyle.label}</span>
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td style={{ padding: '14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                            {(bug.status === 'ASSIGNED' || bug.status === 'NEW' || bug.status === 'REOPENED') && (
+                              <button
+                                type="button"
+                                disabled={isTransitioning}
+                                onClick={() => handleDirectTransition(bug, 'IN_PROGRESS')}
+                                className="btn btn-primary btn-sm"
+                                style={{ fontSize: '11px', fontWeight: '700', padding: '4px 9px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <PlayCircle size={12} />
+                                <span>{isTransitioning ? '...' : 'Start'}</span>
+                              </button>
+                            )}
+
+                            {bug.status === 'IN_PROGRESS' && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isTransitioning}
+                                  onClick={() => handleDirectTransition(bug, 'FIXED')}
+                                  className="btn btn-sm"
+                                  style={{
+                                    background: '#10b981',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    padding: '4px 9px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <CheckCircle2 size={12} />
+                                  <span>{isTransitioning ? '...' : 'Fixed'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isTransitioning}
+                                  onClick={() => openTransitionModal(bug, 'CANNOT_REPRODUCE')}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '10.5px', padding: '4px 7px', color: '#d97706' }}
+                                  title="Cannot Reproduce"
+                                >
+                                  <HelpCircle size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isTransitioning}
+                                  onClick={() => openTransitionModal(bug, 'REJECTED')}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '10.5px', padding: '4px 7px', color: '#dc2626' }}
+                                  title="Reject"
+                                >
+                                  <XCircle size={12} />
+                                </button>
+                              </>
+                            )}
+
+                            {(bug.status === 'FIXED' || bug.status === 'CLOSED') && (
+                              <span style={{ fontSize: '11px', fontWeight: '700', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <CheckCircle2 size={12} />
+                                <span>Fixed</span>
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenInspect(bug)}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: '11px', padding: '4px 6px', color: 'var(--color-primary)' }}
+                              title="Repro Steps & Comments"
+                            >
+                              <Info size={13} />
+                            </button>
+
+                            <Link
+                              href={`/bugs/${bug.id}`}
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: '11px', padding: '4px 6px', color: 'var(--color-text-muted)' }}
+                              title="Open Full Defect Record"
+                            >
+                              <ExternalLink size={13} />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -661,17 +717,32 @@ export default function DeveloperAllBugsPage() {
                       No comments yet. Write a note to QA below.
                     </div>
                   ) : (
-                    bugComments.map((c) => (
-                      <div key={c.id} style={{ background: '#f8fafc', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12.5px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                          <span style={{ fontWeight: '700', fontSize: '12px' }}>{c.user?.name || 'User'}</span>
-                          <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)' }}>
-                            {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                    bugComments.map((c) => {
+                      const isQA = (c.user?.name || '').toLowerCase().includes('qa');
+                      return (
+                        <div key={c.id} style={{ background: '#f8fafc', border: '1px solid var(--color-border)', borderRadius: '8px', padding: '10px 12px', fontSize: '12.5px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: '700', fontSize: '12px', color: 'var(--color-text)' }}>{c.user?.name || 'User'}</span>
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: isQA ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                                color: isQA ? '#059669' : '#4f46e5',
+                              }}>
+                                {isQA ? 'QA Tester' : 'Developer'}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '10.5px', color: 'var(--color-text-muted)' }}>
+                              {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', lineHeight: '1.45' }}>{c.bodyMarkdown || c.content}</div>
                         </div>
-                        <div style={{ color: 'var(--color-text-secondary)' }}>{c.bodyMarkdown}</div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 

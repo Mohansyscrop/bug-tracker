@@ -123,14 +123,15 @@ export const BUG_STATE_TRANSITIONS: TransitionMap = {
     ADMIN: [BugStatus.ASSIGNED, BugStatus.CLOSED],
   },
   [BugStatus.FIXED]: {
-    // Auto-transitions to RETEST when DEV marks Fixed; QA manages RETEST
-    [ProjectRole.QA]: [BugStatus.RETEST],
-    [ProjectRole.LEAD]: [BugStatus.RETEST],
-    ADMIN: [BugStatus.RETEST, BugStatus.CLOSED],
+    [ProjectRole.QA]: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
+    [ProjectRole.LEAD]: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
+    [ProjectRole.DEV]: [BugStatus.RETEST, BugStatus.CLOSED],
+    ADMIN: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.RETEST]: {
     [ProjectRole.QA]: [BugStatus.CLOSED, BugStatus.REOPENED],
     [ProjectRole.LEAD]: [BugStatus.CLOSED, BugStatus.REOPENED],
+    [ProjectRole.DEV]: [BugStatus.CLOSED, BugStatus.REOPENED],
     ADMIN: [BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.REOPENED]: {
@@ -151,6 +152,6 @@ export const RESOLUTION_REQUIRED_STATUSES = new Set([BugStatus.CLOSED]);
 // Statuses that require a reason/comment
 export const COMMENT_REQUIRED_STATUSES = new Set([
   BugStatus.REJECTED,
-  BugStatus.WONT_FIX,
+  BugStatus.CANNOT_REPRODUCE,
   BugStatus.DEFERRED,
 ]);

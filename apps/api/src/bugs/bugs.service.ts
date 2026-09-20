@@ -151,7 +151,7 @@ export class BugsService {
         ...BUG_INCLUDE,
         comments: {
           where: { deletedAt: null },
-          include: { user: { select: { id: true, name: true, email: true } } },
+          include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, globalRole: true } } },
           orderBy: { createdAt: 'asc' },
         },
         attachments: {
@@ -216,11 +216,18 @@ export class BugsService {
         where: { projectId_userId: { projectId: bug.projectId, userId } },
       });
       if (!member) {
-        throw new ForbiddenException('You are not a member of this project');
+        if (bug.assignedToId === userId) {
+          role = 'DEV';
+        } else if (bug.reportedById === userId) {
+          role = 'QA';
+        } else {
+          throw new ForbiddenException('You are not a member of this project');
+        }
+      } else {
+        role = member.projectRole;
+        if (role.endsWith('_DEV') || role === 'DEVELOPER') role = 'DEV';
+        if (role === 'PROJECT_LEAD') role = 'LEAD';
       }
-      role = member.projectRole;
-      if (role.endsWith('_DEV') || role === 'DEVELOPER') role = 'DEV';
-      if (role === 'PROJECT_LEAD') role = 'LEAD';
     }
 
     // Validate transition

@@ -51,12 +51,29 @@ export default function TestingCyclesPage() {
       ]);
 
       const projList = (projRes as any).data ?? [];
-      setProjects(projList);
-      if (!selectedProjectId && projList.length > 0 && !form.projectId) {
-        setForm((f) => ({ ...f, projectId: projList[0].id }));
+      const cyclesList = Array.isArray(cyclesRes) ? cyclesRes : (cyclesRes as any).data ?? [];
+
+      // Combine projects from projectsApi and existing cycles to ensure all active projects appear in the dropdown
+      const projMap = new Map<string, any>();
+      projList.forEach((p: any) => projMap.set(p.id, p));
+      cyclesList.forEach((c: any) => {
+        if (c.project && !projMap.has(c.project.id)) {
+          projMap.set(c.project.id, { id: c.project.id, name: c.project.name, key: c.project.key });
+        }
+      });
+      const combinedProjects = Array.from(projMap.values());
+      setProjects((prev) => {
+        const map = new Map<string, any>();
+        prev.forEach((p) => map.set(p.id, p));
+        combinedProjects.forEach((p) => map.set(p.id, p));
+        return Array.from(map.values());
+      });
+
+      if (!selectedProjectId && combinedProjects.length > 0 && !form.projectId) {
+        setForm((f) => ({ ...f, projectId: combinedProjects[0].id }));
       }
 
-      setCycles(Array.isArray(cyclesRes) ? cyclesRes : (cyclesRes as any).data ?? []);
+      setCycles(cyclesList);
     } finally {
       setLoading(false);
     }

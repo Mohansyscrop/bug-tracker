@@ -8,16 +8,45 @@ import { CreateProjectDto, AddMemberDto, CreateMilestoneDto, CreateComponentDto 
 export class ProjectsService {
   constructor(private prisma: PrismaService) {}
 
-  async listProjectsForUser(userId: string) {
+  async listProjectsForUser(userId: string, globalRole?: string) {
+    if (globalRole === 'ADMIN') {
+      const allProjects = await this.prisma.project.findMany({
+        where: { deletedAt: null },
+        include: {
+          createdBy: { select: { id: true, name: true, email: true } },
+          members: {
+            where: { userId },
+            select: { projectRole: true },
+          },
+          _count: { select: { bugs: true, members: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      return {
+        data: allProjects.map((p) => ({
+          ...p,
+          myRole: p.members[0]?.projectRole || 'LEAD',
+        })),
+      };
+    }
+
     const members = await this.prisma.projectMember.findMany({
       where: { userId },
       include: {
         project: {
-          include: { createdBy: { select: { id: true, name: true, email: true } } },
+          include: {
+            createdBy: { select: { id: true, name: true, email: true } },
+            _count: { select: { bugs: true, members: true } },
+          },
         },
       },
+      orderBy: { project: { createdAt: 'desc' } },
     });
-    return { data: members.filter(m => !m.project.deletedAt).map(m => ({ ...m.project, myRole: m.projectRole })) };
+    return {
+      data: members
+        .filter((m) => !m.project.deletedAt)
+        .map((m) => ({ ...m.project, myRole: m.projectRole })),
+    };
   }
 
   async createProject(userId: string, dto: CreateProjectDto) {
@@ -46,6 +75,12 @@ export class ProjectsService {
       where: { id: projectId, deletedAt: null },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true, globalRole: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
         milestones: { orderBy: { createdAt: 'desc' } },
         components: { include: { lead: { select: { id: true, name: true } } } },
         _count: { select: { bugs: true, members: true } },

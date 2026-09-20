@@ -22,7 +22,7 @@ const SEVERITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
 const PRIORITIES = ['P1', 'P2', 'P3', 'P4'];
 
 const BUG_AREAS = [
-  'FRONTEND', 'BACKEND', 'DATABASE', 'API', 'INTEGRATION', 'UI_UX', 'PERFORMANCE', 'SECURITY', 'REGRESSION'
+  'FRONTEND', 'BACKEND'
 ];
 
 export default function BugsPage() {
@@ -82,12 +82,8 @@ export default function BugsPage() {
       setFilters((f) => ({ ...f, bugArea: 'FRONTEND', status: '', page: 1 }));
     } else if (view === 'BACKEND') {
       setFilters((f) => ({ ...f, bugArea: 'BACKEND', status: '', page: 1 }));
-    } else if (view === 'DATABASE') {
-      setFilters((f) => ({ ...f, bugArea: 'DATABASE', status: '', page: 1 }));
     } else if (view === 'RETEST') {
       setFilters((f) => ({ ...f, status: 'RETEST', bugArea: '', page: 1 }));
-    } else if (view === 'REGRESSION') {
-      setFilters((f) => ({ ...f, bugArea: 'REGRESSION', status: '', page: 1 }));
     } else {
       setFilters((f) => ({ ...f, bugArea: '', status: '', testingCycleId: '', page: 1 }));
     }
@@ -137,11 +133,9 @@ export default function BugsPage() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
           {[
             { id: 'ALL', label: 'All Defects' },
-            { id: 'FRONTEND', label: 'Frontend UI' },
-            { id: 'BACKEND', label: 'Backend & API' },
-            { id: 'DATABASE', label: 'Database' },
+            { id: 'FRONTEND', label: 'Frontend' },
+            { id: 'BACKEND', label: 'Backend' },
             { id: 'RETEST', label: 'Pending Retest' },
-            { id: 'REGRESSION', label: 'Regression Bugs' },
           ].map((preset) => {
             const isActive =
               (preset.id === 'ALL' && !filters.bugArea && !filters.status) ||

@@ -9,7 +9,7 @@ export class CommentsService {
   async getComments(bugId: string) {
     const comments = await this.prisma.comment.findMany({
       where: { bugId, deletedAt: null },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, globalRole: true } } },
       orderBy: { createdAt: 'asc' },
     });
     return { data: comments };
@@ -18,7 +18,7 @@ export class CommentsService {
   async addComment(bugId: string, bodyMarkdown: string, userId: string) {
     const comment = await this.prisma.comment.create({
       data: { bugId, userId, bodyMarkdown },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true, avatarUrl: true, globalRole: true } } },
     });
 
     // Parse @mentions — look for @name patterns and notify
@@ -63,8 +63,17 @@ export class CommentsService {
 
   async deleteComment(id: string, userId: string) {
     const comment = await this.prisma.comment.findFirst({ where: { id, deletedAt: null } });
-    if (!comment) throw new NotFoundException('Comment not found');
-    if (comment.userId !== userId) throw new ForbiddenException('You can only delete your own comments');
+    if (!comment) {
+      return { message: 'Comment already deleted' };
+    }
+
+    const user = await this.prisma.user.findFirst({ where: { id: userId, deletedAt: null } });
+    const isOwner = comment.userId === userId;
+    const isAdmin = user?.globalRole === 'ADMIN';
+
+    if (!isOwner && !isAdmin) {
+      throw new ForbiddenException('You can only delete your own comments');
+    }
 
     await this.prisma.comment.update({ where: { id }, data: { deletedAt: new Date() } });
     return { message: 'Comment deleted' };

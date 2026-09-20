@@ -11,11 +11,14 @@ class ApiClient {
     path: string,
     options: RequestInit = {},
   ): Promise<T> {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const defaultHeaders: Record<string, string> = isFormData ? {} : { 'Content-Type': 'application/json' };
+
     let res = await fetch(`${this.baseUrl}${path}`, {
       ...options,
       credentials: 'include', // httpOnly cookies
       headers: {
-        'Content-Type': 'application/json',
+        ...defaultHeaders,
         ...options.headers,
       },
     });
@@ -33,7 +36,7 @@ class ApiClient {
             ...options,
             credentials: 'include',
             headers: {
-              'Content-Type': 'application/json',
+              ...defaultHeaders,
               ...options.headers,
             },
           });
@@ -79,6 +82,10 @@ class ApiClient {
 
   delete<T>(path: string) {
     return this.request<T>(path, { method: 'DELETE' });
+  }
+
+  postFormData<T>(path: string, formData: FormData) {
+    return this.request<T>(path, { method: 'POST', body: formData });
   }
 }
 
@@ -147,6 +154,21 @@ export const commentsApi = {
     api.put(`/bugs/${bugId}/comments/${commentId}`, { bodyMarkdown }),
   delete: (bugId: string, commentId: string) =>
     api.delete(`/bugs/${bugId}/comments/${commentId}`),
+};
+
+// ── Attachments ─────────────────────────────────────────────
+
+export const attachmentsApi = {
+  list: (bugId: string) => api.get<{ data: any[] }>(`/bugs/${bugId}/attachments`),
+  upload: (bugId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return api.postFormData<{ data: any[] }>(`/bugs/${bugId}/attachments/upload`, formData);
+  },
+  delete: (bugId: string, attachmentId: string) =>
+    api.delete(`/bugs/${bugId}/attachments/${attachmentId}`),
+  fileUrl: (bugId: string, attachmentId: string) =>
+    `${BASE_URL}/api/v1/bugs/${bugId}/attachments/${attachmentId}/file`,
 };
 
 // ── Notifications ────────────────────────────────────────────

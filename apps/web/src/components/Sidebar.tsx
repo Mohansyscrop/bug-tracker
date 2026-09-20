@@ -27,7 +27,8 @@ const NAV = [
 ];
 
 const DEV_NAV = [
-  { href: '/developer', icon: LayoutDashboard, label: 'Dashboard & Projects' },
+  { href: '/developer', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+  { href: '/developer/projects', icon: FolderKanban, label: 'Projects' },
   { href: '/developer/cycles', icon: RotateCcw, label: 'Testing Cycles' },
   { href: '/developer/bugs', icon: Bug, label: 'Assigned Defects' },
 ];
@@ -140,10 +141,9 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
           {isDeveloper ? (
             DEV_NAV.map((item) => {
               const Icon = item.icon;
-              const isActive =
-                item.href === '/developer'
-                  ? pathname === '/developer' || pathname.startsWith('/developer/projects')
-                  : pathname.startsWith(item.href);
+              const isActive = (item as any).exact
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(item.href + '/');
               return (
                 <Link
                   key={item.href}
