@@ -46,6 +46,7 @@ interface BugItem {
   status: string;
   bugArea?: string;
   testingCycleId?: string;
+  project?: { id: string; key: string; name: string };
 }
 
 export default function DeveloperProjectsPage() {
@@ -66,11 +67,27 @@ export default function DeveloperProjectsPage() {
         testingCyclesApi.list(),
         bugsApi.list({ assignedTo: user.id, limit: 100 }),
       ]);
-      setProjects(projRes.data || []);
+      const rawProjects: ProjectItem[] = Array.isArray(projRes) ? projRes : (projRes as any)?.data || [];
+      const projectMap = new Map<string, ProjectItem>();
+      rawProjects.forEach((p) => projectMap.set(p.id, p));
+
+      const bugs: BugItem[] = (bugsRes as any)?.data || (Array.isArray(bugsRes) ? bugsRes : []);
+      bugs.forEach((b) => {
+        if (b.projectId && !projectMap.has(b.projectId) && b.project) {
+          projectMap.set(b.projectId, {
+            id: b.projectId,
+            name: b.project.name || 'Project',
+            key: b.project.key || '',
+            myRole: 'DEV',
+          });
+        }
+      });
+
+      setProjects(Array.from(projectMap.values()));
       const rawCycles: TestingCycleItem[] = Array.isArray(cyclesRes) ? cyclesRes : (cyclesRes as any)?.data || [];
       const cycles = rawCycles.filter((c) => c.status !== 'PLANNED');
       setAllCycles(cycles);
-      setAssignedBugs(bugsRes.data || []);
+      setAssignedBugs(bugs);
     } catch (err) {
       console.error('Failed to load developer projects data', err);
     } finally {
