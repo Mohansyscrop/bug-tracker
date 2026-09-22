@@ -124,36 +124,23 @@ export default function DeveloperDashboardPage() {
 
         {/* Top Developer Hero Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
-          borderRadius: '18px',
-          padding: '28px 32px',
-          color: '#ffffff',
-          boxShadow: '0 12px 35px rgba(49, 46, 129, 0.25)',
-          position: 'relative',
-          overflow: 'hidden',
-          marginBottom: '28px',
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '24px 28px',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
+          marginBottom: '24px',
         }}>
-          {/* Cyber Glow Accent */}
-          <div style={{
-            position: 'absolute',
-            top: '-60px',
-            right: '-60px',
-            width: '280px',
-            height: '280px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(129, 140, 248, 0.35) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  backdropFilter: 'blur(8px)',
+                  background: 'rgba(15, 58, 86, 0.08)',
+                  color: '#0F3A56',
+                  border: '1px solid rgba(15, 58, 86, 0.2)',
                   padding: '4px 10px',
                   borderRadius: '20px',
                   fontSize: '11px',
@@ -165,8 +152,9 @@ export default function DeveloperDashboardPage() {
                   Developer Console
                 </span>
                 <span style={{
-                  background: '#10b981',
-                  color: '#ffffff',
+                  background: '#d1fae5',
+                  color: '#047857',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
                   fontSize: '10.5px',
                   fontWeight: '800',
                   padding: '2px 8px',
@@ -176,17 +164,17 @@ export default function DeveloperDashboardPage() {
                 </span>
               </div>
               <h1 style={{
-                fontSize: '26px',
+                fontSize: '24px',
                 fontWeight: '800',
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.025em',
                 margin: 0,
-                color: '#ffffff',
+                color: 'var(--color-text)',
               }}>
                 Welcome, {user?.name || 'Developer'}
               </h1>
               <p style={{
                 fontSize: '13.5px',
-                color: 'rgba(255, 255, 255, 0.85)',
+                color: 'var(--color-text-secondary)',
                 margin: '6px 0 0',
                 maxWidth: '650px',
               }}>
@@ -200,19 +188,7 @@ export default function DeveloperDashboardPage() {
                 loadData();
               }}
               disabled={refreshing}
-              className="btn"
-              style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                color: '#ffffff',
-                fontWeight: '600',
-                fontSize: '12.5px',
-                padding: '8px 14px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+              className="btn btn-primary"
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               <span>{refreshing ? 'Syncing...' : 'Refresh Records'}</span>
@@ -224,76 +200,76 @@ export default function DeveloperDashboardPage() {
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
             gap: '14px',
-            marginTop: '24px',
+            marginTop: '22px',
             paddingTop: '20px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.16)',
+            borderTop: '1px solid var(--color-border)',
           }}>
             <div style={{
-              background: 'rgba(255, 255, 255, 0.1)',
+              background: '#f8fafc',
               borderRadius: '12px',
               padding: '12px 16px',
-              backdropFilter: 'blur(6px)',
+              border: '1px solid var(--color-border)',
             }}>
-              <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
                 Total Assigned
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#ffffff' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: 'var(--color-text)' }}>
                 {metrics.total}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(139, 92, 246, 0.25)',
+              background: '#faf5ff',
               borderRadius: '12px',
               padding: '12px 16px',
-              border: '1px solid rgba(167, 139, 250, 0.3)',
+              border: '1px solid #e9d5ff',
             }}>
-              <div style={{ fontSize: '11px', color: '#e0e7ff', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '600', textTransform: 'uppercase' }}>
                 In Progress
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#ffffff' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#7c3aed' }}>
                 {metrics.inProgress}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(59, 130, 246, 0.22)',
+              background: '#f0f9ff',
               borderRadius: '12px',
               padding: '12px 16px',
-              border: '1px solid rgba(147, 197, 253, 0.3)',
+              border: '1px solid #bae6fd',
             }}>
-              <div style={{ fontSize: '11px', color: '#dbeafe', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '600', textTransform: 'uppercase' }}>
                 Assigned (Pending)
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#ffffff' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#0284c7' }}>
                 {metrics.assigned}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(16, 185, 129, 0.22)',
+              background: '#ecfdf5',
               borderRadius: '12px',
               padding: '12px 16px',
-              border: '1px solid rgba(110, 231, 183, 0.3)',
+              border: '1px solid #a7f3d0',
             }}>
-              <div style={{ fontSize: '11px', color: '#d1fae5', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#047857', fontWeight: '600', textTransform: 'uppercase' }}>
                 Resolved / Fixed
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#ffffff' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#047857' }}>
                 {metrics.fixed}
               </div>
             </div>
 
             <div style={{
-              background: 'rgba(239, 68, 68, 0.22)',
+              background: '#fef2f2',
               borderRadius: '12px',
               padding: '12px 16px',
-              border: '1px solid rgba(252, 165, 165, 0.3)',
+              border: '1px solid #fecaca',
             }}>
-              <div style={{ fontSize: '11px', color: '#fee2e2', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: '600', textTransform: 'uppercase' }}>
                 Critical / Blockers
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#fca5a5' }}>
+              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#dc2626' }}>
                 {metrics.critical}
               </div>
             </div>
@@ -304,8 +280,8 @@ export default function DeveloperDashboardPage() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '16px',
-          marginBottom: '32px',
+          gap: '18px',
+          marginBottom: '28px',
         }}>
           <Link
             href="/developer/projects"
@@ -327,13 +303,13 @@ export default function DeveloperDashboardPage() {
               width: '46px',
               height: '46px',
               borderRadius: '12px',
-              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #0A1929 0%, #0F3A56 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+              boxShadow: '0 4px 12px rgba(10, 25, 41, 0.25)',
             }}>
               <FolderKanban size={24} />
             </div>
@@ -344,7 +320,7 @@ export default function DeveloperDashboardPage() {
               <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', marginTop: '2px' }}>
                 {projects.length} {projects.length === 1 ? 'Project' : 'Projects'}
               </div>
-              <div style={{ fontSize: '12px', color: '#6366f1', fontWeight: '600', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#0F3A56', fontWeight: '600', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>Open project list</span>
                 <ArrowRight size={13} />
               </div>

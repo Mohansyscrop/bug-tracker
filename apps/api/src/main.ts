@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser = require('cookie-parser');
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 // Safe BigInt JSON serialization
 (BigInt.prototype as any).toJSON = function () {
@@ -15,6 +16,9 @@ async function bootstrap() {
 
   // Cookie parser for httpOnly JWT cookies
   app.use(cookieParser());
+
+  // Global exception filter for clear error reporting
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Global validation pipe
   app.useGlobalPipes(

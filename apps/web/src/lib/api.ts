@@ -47,8 +47,45 @@ class ApiClient {
     }
 
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ message: 'Request failed' }));
-      throw new ApiError(res.status, error.message ?? 'Request failed');
+      let errorMessage = '';
+      let errorData: any = null;
+      try {
+        errorData = await res.json();
+        if (Array.isArray(errorData.message)) {
+          errorMessage = errorData.message.filter(Boolean).join('. ');
+        } else if (typeof errorData.message === 'string' && errorData.message.trim()) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData.error === 'string' && errorData.error.trim()) {
+          errorMessage = errorData.error;
+        }
+      } catch {
+        try {
+          const text = await res.text();
+          if (text && text.length < 300) {
+            errorMessage = text;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!errorMessage || errorMessage.toLowerCase() === 'internal server error') {
+        switch (res.status) {
+          case 400: errorMessage = errorMessage || 'Invalid request parameters or payload.'; break;
+          case 401: errorMessage = 'Your session has expired or you are unauthorized. Please log in again.'; break;
+          case 403: errorMessage = 'You do not have permission to perform this action.'; break;
+          case 404: errorMessage = 'The requested resource was not found.'; break;
+          case 409: errorMessage = 'A conflict occurred. A resource with these details already exists.'; break;
+          case 422: errorMessage = 'The provided data could not be processed.'; break;
+          case 500: errorMessage = errorData?.message && errorData.message !== 'Internal server error' ? errorData.message : 'A server error occurred while processing your request. Please try again.'; break;
+          case 502:
+          case 503:
+          case 504: errorMessage = 'Backend service is currently unavailable. Please verify API server status.'; break;
+          default: errorMessage = `Request failed with status ${res.status}.`;
+        }
+      }
+
+      throw new ApiError(res.status, errorMessage, errorData);
     }
 
     if (res.status === 204) return {} as T;
@@ -90,7 +127,7 @@ class ApiClient {
 }
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public details?: any) {
     super(message);
     this.name = 'ApiError';
   }

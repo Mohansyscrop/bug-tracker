@@ -65,10 +65,40 @@ export class UsersService {
     projectMembers?: { projectId: string; projectRole: string }[];
   }) {
     const existing = await this.prisma.user.findFirst({
-      where: { email: data.email, deletedAt: null },
+      where: { email: data.email },
     });
+
     if (existing) {
-      throw new ConflictException('A user with this email already exists');
+      if (!existing.deletedAt) {
+        throw new ConflictException(`A user with email '${data.email}' already exists.`);
+      }
+
+      // If user was soft-deleted, reactivate account with new credentials and assigned role
+      const passwordHash = await bcrypt.hash(data.password, 12);
+      await this.prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: existing.id },
+          data: {
+            name: data.name,
+            passwordHash,
+            globalRole: data.globalRole === 'ADMIN' ? 'ADMIN' : 'STANDARD',
+            deletedAt: null,
+          },
+        });
+
+        await tx.projectMember.deleteMany({ where: { userId: existing.id } });
+        if (data.projectMembers && data.projectMembers.length > 0) {
+          await tx.projectMember.createMany({
+            data: data.projectMembers.map((pm) => ({
+              userId: existing.id,
+              projectId: pm.projectId,
+              projectRole: pm.projectRole,
+            })),
+          });
+        }
+      });
+
+      return this.findById(existing.id);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);

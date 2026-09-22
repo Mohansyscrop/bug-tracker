@@ -785,7 +785,7 @@ export default function BugDetailPage() {
                       const avatarGradient = isQA
                         ? 'linear-gradient(135deg, #059669 0%, #0d9488 100%)'
                         : isDev
-                        ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                        ? 'linear-gradient(135deg, #0284c7 0%, #0F3A56 100%)'
                         : isLead
                         ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
                         : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
@@ -799,14 +799,14 @@ export default function BugDetailPage() {
                             padding: '14px 16px',
                             borderRadius: '12px',
                             background: isMe
-                              ? 'linear-gradient(180deg, rgba(99, 102, 241, 0.035) 0%, rgba(255, 255, 255, 0.95) 100%)'
+                              ? 'rgba(14, 165, 233, 0.10)'
                               : 'var(--color-surface)',
                             border: isMe
-                              ? '1px solid rgba(99, 102, 241, 0.3)'
+                              ? '1px solid rgba(56, 189, 248, 0.35)'
                               : '1px solid var(--color-border)',
                             boxShadow: isMe
-                              ? '0 2px 8px rgba(99, 102, 241, 0.06)'
-                              : '0 1px 4px rgba(0, 0, 0, 0.02)',
+                              ? '0 2px 8px rgba(14, 165, 233, 0.12)'
+                              : '0 1px 4px rgba(0, 0, 0, 0.2)',
                             transition: 'all 0.15s ease',
                           }}
                         >
@@ -881,8 +881,9 @@ export default function BugDetailPage() {
                                     fontWeight: '800',
                                     padding: '1px 6px',
                                     borderRadius: '10px',
-                                    background: '#4f46e5',
+                                    background: 'linear-gradient(135deg, #0D1117 0%, #0A1929 50%, #0F3A56 100%)',
                                     color: '#ffffff',
+                                    border: '1px solid rgba(56, 189, 248, 0.3)',
                                     letterSpacing: '0.4px',
                                     textTransform: 'uppercase',
                                   }}>

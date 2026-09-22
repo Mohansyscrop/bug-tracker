@@ -243,7 +243,7 @@ export default function ProjectTestingCyclesPage() {
           borderRadius: '16px',
           padding: '24px 28px',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
+          boxShadow: 'var(--shadow-card)',
           marginBottom: '24px',
           display: 'flex',
           flexWrap: 'wrap',
@@ -259,9 +259,9 @@ export default function ProjectTestingCyclesPage() {
                 fontWeight: '800',
                 padding: '3px 8px',
                 borderRadius: '6px',
-                background: 'rgba(99, 102, 241, 0.12)',
-                color: '#4f46e5',
-                border: '1px solid rgba(99, 102, 241, 0.25)',
+                background: 'rgba(15, 58, 86, 0.08)',
+                color: '#0F3A56',
+                border: '1px solid rgba(15, 58, 86, 0.2)',
               }}>
                 {project?.key || 'PROJ'}
               </span>
@@ -270,9 +270,9 @@ export default function ProjectTestingCyclesPage() {
                 fontWeight: '700',
                 padding: '2px 8px',
                 borderRadius: '12px',
-                background: '#ecfdf5',
+                background: '#d1fae5',
                 color: '#047857',
-                border: '1px solid #a7f3d0',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
               }}>
@@ -282,7 +282,7 @@ export default function ProjectTestingCyclesPage() {
             <h1 style={{ fontSize: '24px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
               {project?.name || 'Project Testing Cycles'}
             </h1>
-            <p style={{ fontSize: '13.5px', color: 'var(--color-text-secondary)', margin: '6px 0 0', maxWidth: '680px', lineHeight: '1.45' }}>
+            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', margin: '6px 0 0', maxWidth: '680px', lineHeight: '1.45' }}>
               {project?.description || 'Browse testing cycles, filter by environment and active status, and inspect your assigned defects.'}
             </p>
           </div>
@@ -343,7 +343,7 @@ export default function ProjectTestingCyclesPage() {
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-sm)',
           marginBottom: '20px',
-          background: '#ffffff',
+          background: 'var(--color-surface)',
         }}>
           <div style={{
             display: 'flex',
@@ -603,9 +603,10 @@ export default function ProjectTestingCyclesPage() {
                 style={{
                   padding: '2px 7px',
                   borderRadius: '4px',
-                  border: '1px solid var(--color-border)',
-                  background: pageSize === size ? '#4f46e5' : '#ffffff',
+                  background: pageSize === size ? 'linear-gradient(135deg, #1d68f2 0%, #1155d7 100%)' : '#ffffff',
                   color: pageSize === size ? '#ffffff' : 'var(--color-text)',
+                  border: pageSize === size ? '1px solid #1155d7' : '1px solid var(--color-border)',
+                  boxShadow: pageSize === size ? '0 2px 6px rgba(17, 85, 215, 0.35)' : 'none',
                   cursor: 'pointer',
                   fontSize: '11.5px',
                   fontWeight: '700',
@@ -849,7 +850,7 @@ export default function ProjectTestingCyclesPage() {
                     justifyContent: 'space-between',
                     gap: '16px',
                     transition: 'all 0.2s ease',
-                    background: '#ffffff',
+                    background: 'var(--color-surface)',
                   }}
                 >
                   <div>
@@ -1031,12 +1032,13 @@ export default function ProjectTestingCyclesPage() {
                           width: '32px',
                           height: '32px',
                           borderRadius: '8px',
-                          border: '1px solid var(--color-border)',
-                          background: currentPage === p ? '#4f46e5' : '#ffffff',
+                          border: currentPage === p ? '1px solid #1155d7' : '1px solid var(--color-border)',
+                          background: currentPage === p ? 'linear-gradient(135deg, #1d68f2 0%, #1155d7 100%)' : '#ffffff',
                           color: currentPage === p ? '#ffffff' : 'var(--color-text)',
                           fontWeight: '700',
                           fontSize: '12px',
                           cursor: 'pointer',
+                          boxShadow: currentPage === p ? '0 2px 8px rgba(17, 85, 215, 0.35)' : 'none',
                         }}
                       >
                         {p}

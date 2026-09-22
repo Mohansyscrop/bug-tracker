@@ -12,10 +12,7 @@ import {
   ShieldCheck,
   Bell,
   LogOut,
-  CheckCircle2,
-  Check,
   ExternalLink,
-  Sparkles,
   Laptop,
 } from 'lucide-react';
 
@@ -43,10 +40,9 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
   const { unreadCount, notifications, markRead, markAllRead } = useNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
 
-  // Check if current user is a developer or viewing developer portal
+  // Check if current user is a developer
   const isDeveloper =
-    (user?.projectMembers?.some((m) => m.projectRole?.includes('DEV') || m.projectRole === 'DEVELOPER') ||
-      pathname.startsWith('/developer')) &&
+    Boolean(user?.projectMembers?.some((m) => m.projectRole?.includes('DEV') || m.projectRole === 'DEVELOPER')) &&
     user?.globalRole !== 'ADMIN';
 
   function initials(name: string) {
@@ -63,58 +59,79 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         {/* Brand Header */}
         <div style={{
-          padding: '20px 18px 18px',
-          borderBottom: '1px solid var(--color-border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#ffffff',
+          padding: '18px 16px 16px',
+          borderBottom: '1px solid var(--sidebar-border)',
+          background: 'rgba(10, 20, 35, 0.75)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link
+            href={isDeveloper ? '/developer' : '/dashboard'}
+            style={{
+              textDecoration: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
+            {/* Spidy Logo Above */}
             <div style={{
-              width: '38px',
-              height: '38px',
-              background: isDeveloper
-                ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
-                : 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
-              borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+              marginBottom: '10px',
+              padding: '6px 14px',
+              background: 'rgba(10, 25, 45, 0.55)',
+              borderRadius: '10px',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.45), 0 0 14px rgba(17, 85, 215, 0.25)',
+              width: '100%',
+              maxWidth: '220px',
             }}>
-              {isDeveloper ? <Laptop size={20} strokeWidth={2.2} /> : <Bug size={20} strokeWidth={2.2} />}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/spidy-logo-light-text.png"
+                alt="Spidy Syscorp Logo"
+                style={{
+                  maxHeight: '38px',
+                  maxWidth: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
             </div>
-            <div>
-              <div style={{
-                fontSize: '15.5px',
+
+            {/* BugTracker Title Below */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '7px',
+            }}>
+              <span style={{
+                fontSize: '16px',
                 fontWeight: '800',
-                letterSpacing: '-0.03em',
-                color: '#0f172a',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
+                letterSpacing: '-0.02em',
+                color: '#f8fafc',
               }}>
                 BugTracker
-                <span style={{
-                  fontSize: '9.5px',
-                  fontWeight: '800',
-                  color: isDeveloper ? '#6366f1' : '#4338ca',
-                  background: isDeveloper ? '#f5f3ff' : '#eef2ff',
-                  border: isDeveloper ? '1px solid rgba(139, 92, 246, 0.25)' : '1px solid rgba(99, 102, 241, 0.25)',
-                  borderRadius: '5px',
-                  padding: '1.5px 6px',
-                  letterSpacing: '0.06em',
-                }}>
-                  {isDeveloper ? 'DEV PORTAL' : 'QA PRO'}
-                </span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
-                {isDeveloper ? 'Developer Cockpit' : 'Test & Defect Platform'}
-              </div>
+              </span>
+              <span style={{
+                fontSize: '9.5px',
+                fontWeight: '800',
+                color: '#60a5fa',
+                background: 'rgba(17, 85, 215, 0.25)',
+                border: '1px solid rgba(17, 85, 215, 0.45)',
+                borderRadius: '5px',
+                padding: '1.5px 6px',
+                letterSpacing: '0.06em',
+              }}>
+                {isDeveloper ? 'DEV PORTAL' : 'QA PRO'}
+              </span>
             </div>
-          </div>
+            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', marginTop: '2px' }}>
+              {isDeveloper ? 'Developer Cockpit' : 'Test & Defect Platform'}
+            </div>
+          </Link>
         </div>
 
         {/* Primary Navigation */}
@@ -129,7 +146,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
           <div style={{
             fontSize: '10.5px',
             fontWeight: '700',
-            color: '#94a3b8',
+            color: '#64748b',
             textTransform: 'uppercase',
             letterSpacing: '0.07em',
             padding: '4px 10px 8px',
@@ -137,7 +154,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             {isDeveloper ? 'Developer Navigation' : 'Platform'}
           </div>
 
-          {/* If Developer: Render ONLY DEV_NAV. Suppress standard QA/workspace nav */}
+          {/* If Developer: Render DEV_NAV. Otherwise standard QA nav */}
           {isDeveloper ? (
             DEV_NAV.map((item) => {
               const Icon = item.icon;
@@ -160,56 +177,21 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               );
             })
           ) : (
-            <>
-              <Link
-                id="nav-developer-panel"
-                href="/developer"
-                onClick={onClose}
-                className={`sidebar-nav-item ${pathname.startsWith('/developer') ? 'active' : ''}`}
-                style={{
-                  background: pathname.startsWith('/developer')
-                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.16))'
-                    : 'rgba(99, 102, 241, 0.05)',
-                  border: pathname.startsWith('/developer')
-                    ? '1px solid rgba(99, 102, 241, 0.45)'
-                    : '1px solid rgba(99, 102, 241, 0.2)',
-                  color: pathname.startsWith('/developer') ? '#4f46e5' : '#4338ca',
-                  fontWeight: '700',
-                  marginBottom: '6px',
-                }}
-              >
-                <Laptop size={18} strokeWidth={2.2} style={{ color: '#6366f1' }} />
-                <span style={{ flex: 1 }}>Developer Panel</span>
-                <span style={{
-                  fontSize: '9px',
-                  padding: '1.5px 6px',
-                  borderRadius: '4px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  fontWeight: '800',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}>
-                  Dev
-                </span>
-              </Link>
-
-              {NAV.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon size={18} strokeWidth={isActive ? 2.3 : 1.9} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </>
+            NAV.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                >
+                  <Icon size={18} strokeWidth={isActive ? 2.3 : 1.9} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })
           )}
 
           {user?.globalRole === 'ADMIN' && (
@@ -218,7 +200,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               <div style={{
                 fontSize: '10.5px',
                 fontWeight: '700',
-                color: '#94a3b8',
+                color: '#64748b',
                 textTransform: 'uppercase',
                 letterSpacing: '0.07em',
                 padding: '4px 10px 8px',
@@ -248,7 +230,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
         <div style={{
           padding: '14px 12px 20px',
           borderTop: '1px solid var(--color-border)',
-          background: '#f8fafc',
+          background: 'rgba(10, 20, 35, 0.85)',
           display: 'flex',
           flexDirection: 'column',
           gap: '9px',
@@ -261,23 +243,24 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             style={{
               width: '100%',
               position: 'relative',
-              background: notifOpen ? '#eef2ff' : '#ffffff',
+              background: notifOpen ? 'rgba(14, 165, 233, 0.18)' : 'rgba(13, 25, 43, 0.7)',
               border: '1px solid var(--color-border)',
               boxShadow: 'var(--shadow-xs)',
+              color: 'var(--color-text)',
             }}
           >
-            <Bell size={17} strokeWidth={1.9} style={{ color: '#4f46e5' }} />
+            <Bell size={17} strokeWidth={1.9} style={{ color: '#38bdf8' }} />
             <span style={{ fontWeight: '600' }}>Activity & Alerts</span>
             {unreadCount > 0 && (
               <span style={{
                 marginLeft: 'auto',
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                background: 'linear-gradient(135deg, #0284c7, #0F3A56)',
                 color: '#ffffff',
                 borderRadius: '999px',
                 padding: '2px 8px',
                 fontSize: '10.5px',
                 fontWeight: '700',
-                boxShadow: '0 2px 6px rgba(79, 70, 229, 0.35)',
+                boxShadow: '0 2px 6px rgba(14, 165, 233, 0.35)',
               }}>
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
@@ -290,7 +273,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             alignItems: 'center',
             gap: '10px',
             padding: '10px 12px',
-            background: '#ffffff',
+            background: 'rgba(13, 25, 43, 0.7)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--color-border)',
             boxShadow: 'var(--shadow-xs)',
@@ -306,14 +289,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
                 borderRadius: '50%',
                 background: '#10b981',
                 boxShadow: '0 0 6px #10b981',
-                border: '1.5px solid #ffffff',
+                border: '1.5px solid #0D1117',
               }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 fontSize: '13px',
                 fontWeight: '700',
-                color: '#0f172a',
+                color: '#f8fafc',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -323,7 +306,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               </div>
               <div style={{
                 fontSize: '10.5px',
-                color: '#4f46e5',
+                color: '#38bdf8',
                 fontWeight: '700',
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
@@ -336,7 +319,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               onClick={() => logout()}
               className="btn btn-ghost btn-icon"
               title="Sign out"
-              style={{ padding: '6px', color: '#64748b' }}
+              style={{ padding: '6px', color: '#94a3b8' }}
             >
               <LogOut size={16} />
             </button>
@@ -357,10 +340,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             bottom: '20px',
             width: '380px',
             maxHeight: '500px',
-            background: '#ffffff',
-            border: '1px solid var(--color-border)',
+            background: 'linear-gradient(135deg, #0D1117 0%, #0A1929 70%, #0F3A56 100%)',
+            border: '1px solid var(--color-border-strong)',
             borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 20px 48px -8px rgba(15, 23, 42, 0.18), 0 8px 20px rgba(0,0,0,0.06)',
+            boxShadow: '0 20px 48px -8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(14, 165, 233, 0.15)',
             zIndex: 200,
             display: 'flex',
             flexDirection: 'column',
@@ -373,7 +356,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#f8fafc',
+              background: 'rgba(10, 25, 41, 0.85)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bell size={17} style={{ color: 'var(--color-primary)' }} />
@@ -419,13 +402,13 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
                     style={{
                       padding: '13px 16px',
                       borderBottom: '1px solid var(--color-border-subtle)',
-                      background: notif.isRead ? '#ffffff' : 'rgba(99, 102, 241, 0.05)',
+                      background: notif.isRead ? 'transparent' : 'rgba(14, 165, 233, 0.08)',
                       cursor: 'pointer',
                       transition: 'background var(--transition-fast)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: notif.isRead ? '550' : '700', color: '#0f172a' }}>
+                      <span style={{ fontSize: '13px', fontWeight: notif.isRead ? '550' : '700', color: '#f8fafc' }}>
                         {notif.title}
                       </span>
                       {!notif.isRead && (
@@ -436,12 +419,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
                           background: 'var(--color-primary)',
                           flexShrink: 0,
                           marginTop: '5px',
-                          boxShadow: '0 0 6px rgba(79, 70, 229, 0.6)',
+                          boxShadow: '0 0 6px rgba(14, 165, 233, 0.8)',
                         }} />
                       )}
                     </div>
                     {notif.body && (
-                      <p style={{ fontSize: '12.5px', color: '#64748b', margin: '4px 0 0', lineHeight: 1.45 }}>
+                      <p style={{ fontSize: '12.5px', color: '#94a3b8', margin: '4px 0 0', lineHeight: 1.45 }}>
                         {notif.body}
                       </p>
                     )}

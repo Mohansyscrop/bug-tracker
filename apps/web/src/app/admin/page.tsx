@@ -195,27 +195,15 @@ export default function AdminPage() {
 
     try {
       const isGlobalAdmin = createForm.assignedRole === 'ADMIN';
-      const projectMembers: ProjectAssignment[] = [];
-
-      if (!isGlobalAdmin && createForm.assignedRole !== 'STANDARD') {
-        if (createForm.assignToAllProjects) {
-          projects.forEach((p) => {
-            projectMembers.push({ projectId: p.id, projectRole: createForm.assignedRole });
-          });
-        } else if (createForm.selectedProjectId) {
-          projectMembers.push({ projectId: createForm.selectedProjectId, projectRole: createForm.assignedRole });
-        }
-      }
 
       await usersApi.create({
         name: createForm.name,
         email: createForm.email,
         password: createForm.password,
         globalRole: isGlobalAdmin ? 'ADMIN' : 'STANDARD',
-        projectMembers: projectMembers.length > 0 ? projectMembers : undefined,
       });
 
-      setActionSuccess('User successfully created with assigned role!');
+      setActionSuccess('User successfully created!');
       setTimeout(() => setActionSuccess(''), 4000);
       setShowCreateModal(false);
       setCreateForm({
@@ -223,7 +211,7 @@ export default function AdminPage() {
         email: '',
         password: '',
         assignedRole: 'DEV',
-        selectedProjectId: projects[0]?.id ?? '',
+        selectedProjectId: '',
         assignToAllProjects: false,
       });
       await fetchUsers();
@@ -329,23 +317,50 @@ export default function AdminPage() {
         {/* Header */}
         <div className="page-header" style={{ marginBottom: '20px' }}>
           <div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              borderRadius: '999px',
+              background: 'rgba(15, 58, 86, 0.08)',
+              border: '1px solid rgba(15, 58, 86, 0.2)',
+              color: '#0F3A56',
+              fontSize: '11px',
+              fontWeight: '750',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              marginBottom: '6px',
+            }}>
+              <ShieldCheck size={13} />
+              <span>Enterprise Governance</span>
+            </div>
             <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              System Administration & Governance
+              System Administration & Access Control
             </h1>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '2px' }}>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '3px' }}>
               User provisioning, project access matrices, security policies, and enterprise role permissions.
             </p>
           </div>
-          {activeTab === 'users' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
-              id="admin-add-user-btn"
-              className="btn btn-primary"
-              onClick={() => setShowCreateModal(true)}
+              onClick={fetchUsers}
+              className="btn btn-secondary"
             >
-              <PlusCircle size={15} />
-              <span>Create User</span>
+              <RotateCcw size={14} />
+              <span>Refresh</span>
             </button>
-          )}
+            {activeTab === 'users' && (
+              <button
+                id="admin-add-user-btn"
+                className="btn btn-primary"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <PlusCircle size={15} />
+                <span>Create User</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Notifications / Alerts */}
@@ -858,37 +873,6 @@ export default function AdminPage() {
                 <option value="ADMIN">System Administrator — Global unrestricted governance</option>
               </select>
             </div>
-
-            {createForm.assignedRole !== 'ADMIN' && projects.length > 0 && (
-              <div className="card-subtle">
-                <label className="label" style={{ marginBottom: '8px' }}>Project Assignment</label>
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={createForm.assignToAllProjects}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, assignToAllProjects: e.target.checked }))}
-                      style={{ accentColor: 'var(--color-primary)' }}
-                    />
-                    Assign this role across all active projects ({projects.length})
-                  </label>
-                </div>
-
-                {!createForm.assignToAllProjects && (
-                  <select
-                    className="select"
-                    value={createForm.selectedProjectId}
-                    onChange={(e) => setCreateForm((f) => ({ ...f, selectedProjectId: e.target.value }))}
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.key})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
 
             {createError && (
               <div style={{

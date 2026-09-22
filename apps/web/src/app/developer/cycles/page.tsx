@@ -124,7 +124,7 @@ export default function DeveloperAllCyclesPage() {
           borderRadius: '16px',
           padding: '24px 28px',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
+          boxShadow: 'var(--shadow-card)',
           marginBottom: '24px',
           display: 'flex',
           flexWrap: 'wrap',
@@ -134,20 +134,21 @@ export default function DeveloperAllCyclesPage() {
         }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 6px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <RotateCcw size={22} style={{ color: '#4f46e5' }} />
+              <RotateCcw size={22} style={{ color: '#0F3A56' }} />
               <span>Assigned Testing Cycles</span>
               <span style={{
                 fontSize: '11px',
                 fontWeight: '700',
                 padding: '2px 8px',
                 borderRadius: '12px',
-                background: 'var(--color-primary-dim)',
-                color: 'var(--color-primary)',
+                background: 'rgba(15, 58, 86, 0.08)',
+                color: '#0F3A56',
+                border: '1px solid rgba(15, 58, 86, 0.2)',
               }}>
                 {devCycles.length}
               </span>
             </h1>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
               Testing cycles across your projects that have defects assigned to you. Click any cycle to view and update its defects.
             </p>
           </div>

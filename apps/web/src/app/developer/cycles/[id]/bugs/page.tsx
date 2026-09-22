@@ -330,11 +330,12 @@ export default function CycleAssignedBugsPage() {
 
         {/* Cycle Header Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%)',
+          background: '#ffffff',
           borderRadius: '18px',
           padding: '26px 32px',
-          color: '#ffffff',
-          boxShadow: '0 10px 30px rgba(49, 46, 129, 0.2)',
+          color: 'var(--color-text)',
+          boxShadow: 'var(--shadow-card)',
+          border: '1px solid var(--color-border)',
           marginBottom: '26px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
@@ -343,8 +344,9 @@ export default function CycleAssignedBugsPage() {
               fontWeight: '800',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: '#ffffff',
+              background: 'rgba(15, 58, 86, 0.08)',
+              color: '#0F3A56',
+              border: '1px solid rgba(15, 58, 86, 0.2)',
             }}>
               Cycle {cycle?.cycleNumber || '01'}
             </span>
@@ -353,8 +355,9 @@ export default function CycleAssignedBugsPage() {
               fontWeight: '700',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.15)',
-              color: '#ffffff',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: '1px solid #e2e8f0',
               textTransform: 'uppercase',
             }}>
               {cycle?.type || 'FUNCTIONAL'}
@@ -364,8 +367,9 @@ export default function CycleAssignedBugsPage() {
               fontWeight: '700',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: '#10b981',
-              color: '#ffffff',
+              background: '#d1fae5',
+              color: '#047857',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
             }}>
               Env: {cycle?.environment || 'QA'}
             </span>
@@ -374,20 +378,21 @@ export default function CycleAssignedBugsPage() {
               fontWeight: '700',
               padding: '3px 8px',
               borderRadius: '6px',
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: '#ffffff',
+              background: '#e0f2fe',
+              color: '#0369a1',
+              border: '1px solid #bae6fd',
               marginLeft: 'auto',
             }}>
               {cycle?.status?.replace('_', ' ') || 'IN PROGRESS'}
             </span>
           </div>
 
-          <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 8px', color: '#ffffff' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 8px', color: 'var(--color-text)' }}>
             {cycle?.name}
           </h1>
 
           {cycle?.description && (
-            <p style={{ fontSize: '13.5px', color: 'rgba(255, 255, 255, 0.85)', margin: '0 0 16px', maxWidth: '700px' }}>
+            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', margin: '0 0 16px', maxWidth: '700px' }}>
               {cycle.description}
             </p>
           )}
@@ -399,18 +404,18 @@ export default function CycleAssignedBugsPage() {
             gap: '14px',
             flexWrap: 'wrap',
             paddingTop: '16px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.16)',
+            borderTop: '1px solid var(--color-border)',
           }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid var(--color-border)', color: 'var(--color-text)', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
               Total Assigned: <strong>{metrics.total}</strong>
             </div>
-            <div style={{ background: 'rgba(139, 92, 246, 0.3)', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+            <div style={{ background: '#fdf4ff', border: '1px solid #f0abfc', color: '#86198f', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
               In Progress: <strong>{metrics.inProgress}</strong>
             </div>
-            <div style={{ background: 'rgba(59, 130, 246, 0.3)', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
               Pending: <strong>{metrics.pending}</strong>
             </div>
-            <div style={{ background: 'rgba(16, 185, 129, 0.3)', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '6px 14px', borderRadius: '8px', fontSize: '12.5px' }}>
               Fixed: <strong>{metrics.fixed}</strong>
             </div>
           </div>
@@ -439,7 +444,7 @@ export default function CycleAssignedBugsPage() {
 
         {/* Workbench Filter Bar */}
         <div style={{
-          background: '#ffffff',
+          background: 'var(--color-surface)',
           borderRadius: '16px',
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-sm)',

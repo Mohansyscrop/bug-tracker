@@ -205,7 +205,7 @@ export default function DeveloperProjectsPage() {
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              background: '#ffffff',
+              background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
               borderRadius: '10px',
               padding: '6px 12px',
@@ -366,7 +366,7 @@ export default function DeveloperProjectsPage() {
                   gap: '18px',
                   position: 'relative',
                   transition: 'all 0.2s ease',
-                  background: '#ffffff',
+                  background: 'var(--color-surface)',
                 }}
               >
                 <div>
@@ -377,9 +377,9 @@ export default function DeveloperProjectsPage() {
                       fontWeight: '800',
                       padding: '3.5px 9px',
                       borderRadius: '6px',
-                      background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15))',
-                      color: '#4f46e5',
-                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      background: 'rgba(14, 165, 233, 0.15)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
                       fontFamily: 'monospace',
                     }}>
                       {project.key}

@@ -2,6 +2,12 @@ import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@n
 import { UsersService } from './users.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminGuard } from '../auth/guards/admin.guard';
+import {
+  CreateUserDto,
+  UpdateUserRoleDto,
+  UpdateUserProjectsDto,
+  UpdateProfileDto,
+} from './dto/users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -23,28 +29,19 @@ export class UsersController {
   }
 
   @Patch('me')
-  updateProfile(@CurrentUser() user: any, @Body() body: { name?: string; avatarUrl?: string }) {
+  updateProfile(@CurrentUser() user: any, @Body() body: UpdateProfileDto) {
     return this.svc.updateProfile(user.id, body);
   }
 
   @Post()
   @UseGuards(AdminGuard)
-  createUser(
-    @Body()
-    body: {
-      name: string;
-      email: string;
-      password: string;
-      globalRole?: string;
-      projectMembers?: { projectId: string; projectRole: string }[];
-    },
-  ) {
+  createUser(@Body() body: CreateUserDto) {
     return this.svc.createUser(body);
   }
 
   @Patch(':id/role')
   @UseGuards(AdminGuard)
-  updateRole(@Param('id') id: string, @Body() body: { globalRole: string }) {
+  updateRole(@Param('id') id: string, @Body() body: UpdateUserRoleDto) {
     return this.svc.updateRole(id, body.globalRole);
   }
 
@@ -52,7 +49,7 @@ export class UsersController {
   @UseGuards(AdminGuard)
   updateProjects(
     @Param('id') id: string,
-    @Body() body: { projectMembers: { projectId: string; projectRole: string }[] },
+    @Body() body: UpdateUserProjectsDto,
   ) {
     return this.svc.updateProjects(id, body.projectMembers ?? []);
   }

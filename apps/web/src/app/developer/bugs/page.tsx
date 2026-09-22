@@ -258,7 +258,7 @@ export default function DeveloperAllBugsPage() {
           borderRadius: '16px',
           padding: '24px 28px',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
+          boxShadow: 'var(--shadow-card)',
           marginBottom: '24px',
           display: 'flex',
           flexWrap: 'wrap',
@@ -275,13 +275,14 @@ export default function DeveloperAllBugsPage() {
                 fontWeight: '700',
                 padding: '2px 8px',
                 borderRadius: '12px',
-                background: 'var(--color-primary-dim)',
-                color: 'var(--color-primary)',
+                background: 'rgba(15, 58, 86, 0.08)',
+                color: '#0F3A56',
+                border: '1px solid rgba(15, 58, 86, 0.2)',
               }}>
                 {displayedBugs.length}
               </span>
             </h1>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
               All defect tasks assigned to you. You can update progress and mark issues fixed directly from this workbench.
             </p>
           </div>

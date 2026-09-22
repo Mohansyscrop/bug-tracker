@@ -19,9 +19,14 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findFirst({
-      where: { email: dto.email, deletedAt: null },
+      where: { email: dto.email },
     });
-    if (existing) throw new ConflictException('Email already registered');
+    if (existing) {
+      if (existing.deletedAt) {
+        throw new ConflictException('This email belongs to a deactivated account. Please contact an administrator.');
+      }
+      throw new ConflictException('A user with this email address already exists.');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({

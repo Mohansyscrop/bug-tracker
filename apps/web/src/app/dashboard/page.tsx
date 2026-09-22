@@ -200,7 +200,7 @@ export default function DashboardPage() {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '14px',
-          background: '#ffffff',
+          background: 'var(--color-surface)',
           padding: '12px 18px',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--color-border)',
@@ -302,16 +302,16 @@ export default function DashboardPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             {/* QA Test Execution Breakdown Metrics Strip */}
             <div className="stats-grid">
-              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+              <div className="stat-card" style={{ '--stat-accent': '#0F3A56' } as React.CSSProperties}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                  <div className="stat-icon" style={{ background: 'rgba(15, 58, 86, 0.08)', color: '#0F3A56' }}>
                     <Layers size={20} />
                   </div>
                   <span style={{
                     fontSize: '11px',
                     fontWeight: '700',
-                    color: '#4f46e5',
-                    background: '#eef2ff',
+                    color: '#0F3A56',
+                    background: 'rgba(15, 58, 86, 0.08)',
                     padding: '2px 8px',
                     borderRadius: '999px',
                   }}>
@@ -397,7 +397,7 @@ export default function DashboardPage() {
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: '#0f172a' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: 'var(--color-text)' }}>
                       Defects by Technical Domain
                     </h3>
                     <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0' }}>Distribution of active issues across codebase</p>
@@ -415,7 +415,7 @@ export default function DashboardPage() {
                     <div
                       key={item.area}
                       style={{
-                        background: '#ffffff',
+                        background: 'var(--color-surface)',
                         border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-md)',
                         padding: '14px 12px',
@@ -437,7 +437,7 @@ export default function DashboardPage() {
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: '#0f172a' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '750', margin: 0, color: 'var(--color-text)' }}>
                       Pending QA Retest Queue
                     </h3>
                     <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
@@ -468,7 +468,7 @@ export default function DashboardPage() {
                       <div
                         key={bug.id}
                         style={{
-                          background: '#ffffff',
+                          background: 'var(--color-surface)',
                           border: '1px solid var(--color-border)',
                           borderRadius: 'var(--radius-md)',
                           padding: '12px 14px',
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                               {bug.bugArea}
                             </span>
                           </div>
-                          <div style={{ fontSize: '13px', color: '#0f172a', marginTop: '4px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: '13px', color: 'var(--color-text)', marginTop: '4px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {bug.title}
                           </div>
                         </div>
@@ -536,7 +536,7 @@ export default function DashboardPage() {
                   <Laptop size={20} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: '#0f172a' }}>
+                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: 'var(--color-text)' }}>
                     Frontend Developer Workbench
                   </h2>
                   <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
@@ -547,12 +547,12 @@ export default function DashboardPage() {
             </div>
 
             <div className="stats-grid">
-              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+              <div className="stat-card" style={{ '--stat-accent': '#0F3A56' } as React.CSSProperties}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                  <div className="stat-icon" style={{ background: 'rgba(15, 58, 86, 0.08)', color: '#0F3A56' }}>
                     <Bug size={20} />
                   </div>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#0F3A56', background: 'rgba(15, 58, 86, 0.08)', padding: '2px 8px', borderRadius: '999px' }}>
                     Active Queue
                   </span>
                 </div>
@@ -615,7 +615,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="card">
-              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: '#0f172a' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: 'var(--color-text)' }}>
                 My Assigned Frontend Tickets
               </h3>
               {myFrontendBugs.length === 0 ? (
@@ -645,7 +645,7 @@ export default function DashboardPage() {
                             </Link>
                           </td>
                           <td style={{ maxWidth: '320px' }}>
-                            <Link href={`/bugs/${bug.id}`} style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600' }}>
+                            <Link href={`/bugs/${bug.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '600' }}>
                               {bug.title}
                             </Link>
                           </td>
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                   <Server size={20} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: '#0f172a' }}>
+                  <h2 style={{ fontSize: '17px', fontWeight: '800', margin: 0, color: 'var(--color-text)' }}>
                     Backend & API Developer Workbench
                   </h2>
                   <p style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
@@ -725,12 +725,12 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="stat-card" style={{ '--stat-accent': '#4f46e5' } as React.CSSProperties}>
+              <div className="stat-card" style={{ '--stat-accent': '#0F3A56' } as React.CSSProperties}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div className="stat-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+                  <div className="stat-icon" style={{ background: 'rgba(15, 58, 86, 0.08)', color: '#0F3A56' }}>
                     <Activity size={20} />
                   </div>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '999px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#0F3A56', background: 'rgba(15, 58, 86, 0.08)', padding: '2px 8px', borderRadius: '999px' }}>
                     Active
                   </span>
                 </div>
@@ -778,7 +778,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="card">
-              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: '#0f172a' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: '750', marginBottom: '14px', color: 'var(--color-text)' }}>
                 My Assigned Backend Tickets
               </h3>
               {myBackendBugs.length === 0 ? (
@@ -808,7 +808,7 @@ export default function DashboardPage() {
                             </Link>
                           </td>
                           <td style={{ maxWidth: '320px' }}>
-                            <Link href={`/bugs/${bug.id}`} style={{ color: '#0f172a', textDecoration: 'none', fontWeight: '600' }}>
+                            <Link href={`/bugs/${bug.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '600' }}>
                               {bug.title}
                             </Link>
                           </td>
@@ -928,7 +928,7 @@ export default function DashboardPage() {
                           <Link
                             href={`/bugs/${b.id}`}
                             style={{
-                              color: '#0f172a',
+                              color: 'var(--color-text)',
                               textDecoration: 'none',
                               fontWeight: '650',
                               fontSize: '13px',

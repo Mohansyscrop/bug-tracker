@@ -40,7 +40,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--color-bg)',
+      background: 'transparent',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -57,7 +57,17 @@ export default function LoginPage() {
         width: '550px',
         height: '550px',
         borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 65%)',
+        background: 'radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '10%',
+        right: '25%',
+        width: '450px',
+        height: '450px',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(15, 58, 86, 0.35) 0%, transparent 65%)',
         pointerEvents: 'none',
       }} />
 
@@ -68,26 +78,35 @@ export default function LoginPage() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '52px',
-            height: '52px',
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            borderRadius: '14px',
-            color: '#ffffff',
-            boxShadow: '0 0 24px rgba(99, 102, 241, 0.5)',
-            marginBottom: '14px',
+            padding: '10px 22px',
+            background: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '16px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.55), 0 0 24px rgba(17, 85, 215, 0.35)',
+            border: '1px solid rgba(17, 85, 215, 0.4)',
+            marginBottom: '16px',
           }}>
-            <Bug size={26} strokeWidth={2.3} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/spidy-logo-original.png"
+              alt="Spidy Syscorp Logo"
+              style={{
+                maxHeight: '48px',
+                maxWidth: '220px',
+                objectFit: 'contain',
+                display: 'block',
+              }}
+            />
           </div>
           <h1 style={{
             fontSize: '24px',
             fontWeight: '800',
             letterSpacing: '-0.03em',
-            background: 'linear-gradient(135deg, #ffffff 40%, #94a3b8 100%)',
+            background: 'linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             margin: 0,
           }}>
-            BugTracker <span style={{ color: '#818cf8', WebkitTextFillColor: '#818cf8' }}>Pro</span>
+            BugTracker <span style={{ color: '#3b82f6', WebkitTextFillColor: '#3b82f6' }}>Pro</span>
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '13.5px', marginTop: '5px' }}>
             Enterprise QA Test Management & Defect Control
@@ -95,11 +114,11 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="card" suppressHydrationWarning style={{ padding: '30px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7)' }}>
+        <div className="card" suppressHydrationWarning style={{ padding: '30px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(17, 85, 215, 0.2)' }}>
           {/* Mode toggle */}
           <div suppressHydrationWarning style={{
             display: 'flex',
-            background: 'rgba(30, 41, 59, 0.65)',
+            background: 'rgba(10, 25, 41, 0.75)',
             borderRadius: 'var(--radius-md)',
             padding: '4px',
             marginBottom: '22px',
@@ -114,10 +133,10 @@ export default function LoginPage() {
                   flex: 1,
                   justifyContent: 'center',
                   border: 'none',
-                  background: mode === m ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                  background: mode === m ? 'linear-gradient(135deg, #1d68f2, #1155d7)' : 'transparent',
                   color: mode === m ? '#ffffff' : 'var(--color-text-muted)',
                   fontWeight: mode === m ? '700' : '500',
-                  boxShadow: mode === m ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none',
+                  boxShadow: mode === m ? '0 2px 10px rgba(17, 85, 215, 0.45)' : 'none',
                 }}
               >
                 {m === 'login' ? 'Sign In' : 'Create Account'}
