@@ -9,20 +9,20 @@
    - Brand: Spidy Logo (Syscorp <Think Simple/>) & BugTracker
    ============================================================== */
 :root {
-  /* Canvas & Surfaces (Inner Body — Crisp Bright SaaS) */
-  --color-bg: #f8fafc;
-  --color-bg-alt: #f1f5f9;
+  /* Canvas & Surfaces (Inner Body — Crisp Bright SaaS with Deep Contrast) */
+  --color-bg: #f1f5f9;
+  --color-bg-alt: #e2e8f0;
   --color-surface: #ffffff;
   --color-surface-2: #f8fafc;
   --color-surface-3: #f1f5f9;
-  --color-surface-hover: rgba(15, 58, 86, 0.04);
+  --color-surface-hover: rgba(17, 85, 215, 0.04);
   --color-surface-solid: #ffffff;
   --color-surface-raised: #ffffff;
 
-  /* Borders */
-  --color-border: #e2e8f0;
-  --color-border-subtle: #f1f5f9;
-  --color-border-strong: #cbd5e1;
+  /* Borders (Defined, Bold & High-Contrast) */
+  --color-border: #cbd5e1;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #94a3b8;
   --color-border-divider: #e2e8f0;
 
   /* Sidebar (Deep Oceanic Midnight Panel — Kept dark as requested) */
@@ -105,16 +105,16 @@
   --status-reopened: #ef4444;
   --status-closed: #64748b;
 
-  /* Multi-Layer Shadows for Bright Luxury SaaS */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -2px rgba(15, 23, 42, 0.03);
-  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02), 0 0 0 1px rgba(226, 232, 240, 0.95);
-  --shadow-card-hover: 0 12px 28px -4px rgba(15, 58, 86, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(15, 58, 86, 0.28);
-  --shadow-glow: 0 0 0 3px rgba(15, 58, 86, 0.16), 0 0 16px rgba(15, 58, 86, 0.12);
+  /* Multi-Layer Shadows for Bold Luxury SaaS */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-sm: 0 2px 4px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 16px 36px -4px rgba(15, 23, 42, 0.12), 0 6px 16px -2px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  --shadow-card-hover: 0 12px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --shadow-glow: 0 0 0 3px rgba(17, 85, 215, 0.18), 0 0 20px rgba(17, 85, 215, 0.15);
   --shadow-sidebar: 2px 0 20px 0 rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.15);
-  --shadow-table: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 0 0 1px #e2e8f0;
+  --shadow-table: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
 
   /* Radii */
   --radius-xs: 6px;
@@ -155,9 +155,9 @@ html {
 body {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(at 0% 0%, rgba(15, 58, 86, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.035) 0px, transparent 45%),
-    radial-gradient(at 50% 100%, rgba(15, 58, 86, 0.02) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(17, 85, 215, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.04) 0px, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
@@ -297,47 +297,30 @@ body {
 }
 
 /* ==============================================================
-   PREMIUM CARDS (Clean White Theme Surface)
+   PREMIUM CARDS (Modern Executive Clean Surface)
    ============================================================== */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 22px;
+  padding: 24px;
   box-shadow: var(--shadow-card);
   transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
   position: relative;
-  overflow: hidden;
 }
 
 .card:hover {
-  border-color: rgba(15, 58, 86, 0.28);
+  border-color: rgba(17, 85, 215, 0.35);
   box-shadow: var(--shadow-card-hover);
-}
-
-/* Top accent line on hover */
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2.5px;
-  background: linear-gradient(90deg, transparent 5%, rgba(15, 58, 86, 0.40) 50%, transparent 95%);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
-.card:hover::before {
-  opacity: 1;
+  transform: translateY(-2px);
 }
 
 .card-subtle {
   background: var(--color-surface-2);
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow-xs);
 }
 
 .card-header {
@@ -345,16 +328,16 @@ body {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--color-border-divider);
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .card-title {
   font-family: var(--font-sans);
-  font-size: 14.5px;
-  font-weight: 750;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--color-text);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 /* ==============================================================
@@ -373,69 +356,53 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px 22px;
   box-shadow: var(--shadow-card);
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
   position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .stat-card:hover {
-  border-color: rgba(15, 58, 86, 0.32);
+  border-color: rgba(17, 85, 215, 0.35);
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
 
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, var(--stat-accent, #0F3A56), transparent);
-  opacity: 0.7;
-  transition: opacity var(--transition-base);
-}
-
-.stat-card:hover::before {
-  opacity: 1;
-}
-
 .stat-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   background: #f1f5f9;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .stat-value {
   font-family: var(--font-sans);
   font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-weight: 850;
+  letter-spacing: -0.04em;
   color: var(--color-text);
   line-height: 1.1;
 }
 
 .stat-label {
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 750;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.055em;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* ==============================================================
-   ADVANCED DATA TABLE (Clean Light Surface)
+   ADVANCED DATA TABLE (Clean Bold Light Surface)
    ============================================================== */
 .table-wrapper {
   overflow-x: auto;
@@ -443,6 +410,7 @@ body {
   border-radius: var(--radius-lg);
   background: #ffffff;
   box-shadow: var(--shadow-table);
+  position: relative;
 }
 
 .table {
@@ -508,7 +476,7 @@ body {
 }
 
 .table tbody tr:hover td {
-  background: #f8fafc;
+  background: rgba(17, 85, 215, 0.04);
 }
 
 /* Table toolbar */
@@ -559,6 +527,7 @@ body {
   display: inline-flex;
   align-items: center;
   letter-spacing: 0.02em;
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
@@ -1215,5 +1184,27 @@ pre {
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

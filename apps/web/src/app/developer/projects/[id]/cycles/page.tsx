@@ -669,6 +669,7 @@ export default function ProjectTestingCyclesPage() {
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                   }}>
+                    <th style={{ padding: '12px 16px', width: '55px', textAlign: 'center' }}>S.No</th>
                     <th style={{ padding: '12px 16px', width: '90px' }}>Cycle #</th>
                     <th style={{ padding: '12px 16px' }}>Cycle Title & Scope</th>
                     <th style={{ padding: '12px 16px', width: '110px' }}>Type</th>
@@ -679,8 +680,9 @@ export default function ProjectTestingCyclesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedCycles.map((cycle) => {
+                  {paginatedCycles.map((cycle, index) => {
                     const statusBadge = getStatusBadgeStyle(cycle.status);
+                    const serialNumber = (currentPage - 1) * pageSize + index + 1;
                     return (
                       <tr
                         key={cycle.id}
@@ -689,6 +691,11 @@ export default function ProjectTestingCyclesPage() {
                           transition: 'background 0.15s ease',
                         }}
                       >
+                        {/* S.No */}
+                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {serialNumber}
+                        </td>
+
                         {/* Cycle # */}
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{

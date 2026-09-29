@@ -269,42 +269,138 @@ export default function DeveloperProjectsPage() {
         {/* Quick Stat Summary Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '14px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px',
           marginBottom: '28px',
         }}>
-          <div className="card" style={{ padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Assigned Projects
+          {/* Card 1: Assigned Projects */}
+          <div className="card" style={{
+            padding: '20px 22px',
+            borderRadius: '14px',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Assigned Projects
+              </span>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#f1f5f9',
+                color: '#334155',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <FolderKanban size={16} />
+              </div>
             </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--color-text)', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: 'var(--color-text)', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {stats.totalProjects}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Projects With Cycles
+          {/* Card 2: Projects With Cycles */}
+          <div className="card" style={{
+            padding: '20px 22px',
+            borderRadius: '14px',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Projects With Cycles
+              </span>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#eef2ff',
+                color: '#6366f1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <RotateCcw size={16} />
+              </div>
             </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#6366f1', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: '#6366f1', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {stats.projectsWithCycles}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Total Assigned Defects
+          {/* Card 3: Total Assigned Defects */}
+          <div className="card" style={{
+            padding: '20px 22px',
+            borderRadius: '14px',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Total Assigned Defects
+              </span>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: '#eff6ff',
+                color: '#2563eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Bug size={16} />
+              </div>
             </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: '#2563eb', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: '#2563eb', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {stats.totalAssignedBugs}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Critical / Blockers
+          {/* Card 4: Critical / Blockers */}
+          <div className="card" style={{
+            padding: '20px 22px',
+            borderRadius: '14px',
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-surface)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Critical / Blockers
+              </span>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: stats.totalCritical > 0 ? '#fef2f2' : '#ecfdf5',
+                color: stats.totalCritical > 0 ? '#dc2626' : '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <AlertTriangle size={16} />
+              </div>
             </div>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: stats.totalCritical > 0 ? '#dc2626' : '#10b981', marginTop: '4px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: stats.totalCritical > 0 ? '#dc2626' : '#10b981', letterSpacing: '-0.03em', lineHeight: 1 }}>
               {stats.totalCritical}
             </div>
           </div>
@@ -373,13 +469,13 @@ export default function DeveloperProjectsPage() {
                   {/* Top Row: Key and Role */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <span style={{
-                      fontSize: '11px',
+                      fontSize: '11.5px',
                       fontWeight: '800',
                       padding: '3.5px 9px',
                       borderRadius: '6px',
-                      background: 'rgba(14, 165, 233, 0.15)',
-                      color: '#38bdf8',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: '#f1f5f9',
+                      color: '#0f172a',
+                      border: '1px solid #e2e8f0',
                       fontFamily: 'monospace',
                     }}>
                       {project.key}

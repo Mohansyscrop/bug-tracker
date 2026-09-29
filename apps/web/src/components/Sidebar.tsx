@@ -73,27 +73,21 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               textAlign: 'center',
             }}
           >
-            {/* Spidy Logo Above */}
+            {/* Spidy Logo */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '10px',
-              padding: '6px 14px',
-              background: 'rgba(10, 25, 45, 0.55)',
-              borderRadius: '10px',
-              border: '1px solid rgba(56, 189, 248, 0.25)',
-              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.45), 0 0 14px rgba(17, 85, 215, 0.25)',
               width: '100%',
-              maxWidth: '220px',
+              marginBottom: '6px',
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/spidy-logo-light-text.png"
                 alt="Spidy Syscorp Logo"
                 style={{
-                  maxHeight: '38px',
-                  maxWidth: '100%',
+                  maxHeight: '26px',
+                  maxWidth: '155px',
                   objectFit: 'contain',
                   display: 'block',
                 }}
@@ -105,31 +99,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '7px',
             }}>
               <span style={{
-                fontSize: '16px',
-                fontWeight: '800',
+                fontSize: '15px',
+                fontWeight: '700',
                 letterSpacing: '-0.02em',
                 color: '#f8fafc',
               }}>
                 BugTracker
               </span>
-              <span style={{
-                fontSize: '9.5px',
-                fontWeight: '800',
-                color: '#60a5fa',
-                background: 'rgba(17, 85, 215, 0.25)',
-                border: '1px solid rgba(17, 85, 215, 0.45)',
-                borderRadius: '5px',
-                padding: '1.5px 6px',
-                letterSpacing: '0.06em',
-              }}>
-                {isDeveloper ? 'DEV PORTAL' : 'QA PRO'}
-              </span>
-            </div>
-            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '500', marginTop: '2px' }}>
-              {isDeveloper ? 'Developer Cockpit' : 'Test & Defect Platform'}
             </div>
           </Link>
         </div>
@@ -246,11 +224,11 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
               background: notifOpen ? 'rgba(14, 165, 233, 0.18)' : 'rgba(13, 25, 43, 0.7)',
               border: '1px solid var(--color-border)',
               boxShadow: 'var(--shadow-xs)',
-              color: 'var(--color-text)',
+              color: '#f8fafc',
             }}
           >
             <Bell size={17} strokeWidth={1.9} style={{ color: '#38bdf8' }} />
-            <span style={{ fontWeight: '600' }}>Activity & Alerts</span>
+            <span style={{ fontWeight: '600', color: '#f8fafc' }}>Activity & Alerts</span>
             {unreadCount > 0 && (
               <span style={{
                 marginLeft: 'auto',
@@ -294,7 +272,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '13px',
+                fontSize: '13.5px',
                 fontWeight: '700',
                 color: '#f8fafc',
                 overflow: 'hidden',
@@ -303,15 +281,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
                 letterSpacing: '-0.01em',
               }}>
                 {user?.name}
-              </div>
-              <div style={{
-                fontSize: '10.5px',
-                color: '#38bdf8',
-                fontWeight: '700',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}>
-                {user?.globalRole}
               </div>
             </div>
             <button
@@ -360,7 +329,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Bell size={17} style={{ color: 'var(--color-primary)' }} />
-                <span style={{ fontSize: '14px', fontWeight: '750', color: 'var(--color-text)' }}>
+                <span style={{ fontSize: '14px', fontWeight: '750', color: '#f8fafc' }}>
                   Notifications
                 </span>
                 {unreadCount > 0 && (

@@ -126,11 +126,23 @@ export default function DeveloperDashboardPage() {
         <div style={{
           background: '#ffffff',
           borderRadius: '16px',
-          padding: '24px 28px',
+          padding: '26px 30px',
           border: '1px solid var(--color-border)',
           boxShadow: 'var(--shadow-card)',
-          marginBottom: '24px',
+          marginBottom: '26px',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
+          {/* Top accent gradient bar */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3.5px',
+            background: 'linear-gradient(90deg, #1155d7 0%, #0284c7 50%, #38bdf8 100%)',
+          }} />
+
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
@@ -138,13 +150,13 @@ export default function DeveloperDashboardPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: 'rgba(15, 58, 86, 0.08)',
-                  color: '#0F3A56',
-                  border: '1px solid rgba(15, 58, 86, 0.2)',
+                  background: 'rgba(17, 85, 215, 0.08)',
+                  color: '#1155d7',
+                  border: '1px solid rgba(17, 85, 215, 0.25)',
                   padding: '4px 10px',
                   borderRadius: '20px',
                   fontSize: '11px',
-                  fontWeight: '700',
+                  fontWeight: '750',
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase',
                 }}>
@@ -154,7 +166,7 @@ export default function DeveloperDashboardPage() {
                 <span style={{
                   background: '#d1fae5',
                   color: '#047857',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
                   fontSize: '10.5px',
                   fontWeight: '800',
                   padding: '2px 8px',
@@ -195,81 +207,91 @@ export default function DeveloperDashboardPage() {
             </button>
           </div>
 
-          {/* Metrics Ribbon */}
+          {/* Metrics Ribbon — Bold Executive Cards */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
             gap: '14px',
-            marginTop: '22px',
-            paddingTop: '20px',
+            marginTop: '24px',
+            paddingTop: '22px',
             borderTop: '1px solid var(--color-border)',
           }}>
             <div style={{
-              background: '#f8fafc',
+              background: '#ffffff',
               borderRadius: '12px',
-              padding: '12px 16px',
+              padding: '14px 18px',
               border: '1px solid var(--color-border)',
+              borderLeft: '4px solid #0f172a',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
             }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#475569', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Assigned
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: 'var(--color-text)' }}>
+              <div style={{ fontSize: '26px', fontWeight: '850', marginTop: '4px', color: '#0f172a', lineHeight: 1.1 }}>
                 {metrics.total}
               </div>
             </div>
 
             <div style={{
-              background: '#faf5ff',
+              background: '#ffffff',
               borderRadius: '12px',
-              padding: '12px 16px',
-              border: '1px solid #e9d5ff',
+              padding: '14px 18px',
+              border: '1px solid #d8b4fe',
+              borderLeft: '4px solid #7c3aed',
+              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.08)',
             }}>
-              <div style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#6d28d9', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 In Progress
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#7c3aed' }}>
+              <div style={{ fontSize: '26px', fontWeight: '850', marginTop: '4px', color: '#6d28d9', lineHeight: 1.1 }}>
                 {metrics.inProgress}
               </div>
             </div>
 
             <div style={{
-              background: '#f0f9ff',
+              background: '#ffffff',
               borderRadius: '12px',
-              padding: '12px 16px',
-              border: '1px solid #bae6fd',
+              padding: '14px 18px',
+              border: '1px solid #7dd3fc',
+              borderLeft: '4px solid #0284c7',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
             }}>
-              <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#0284c7', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Assigned (Pending)
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#0284c7' }}>
+              <div style={{ fontSize: '26px', fontWeight: '850', marginTop: '4px', color: '#0284c7', lineHeight: 1.1 }}>
                 {metrics.assigned}
               </div>
             </div>
 
             <div style={{
-              background: '#ecfdf5',
+              background: '#ffffff',
               borderRadius: '12px',
-              padding: '12px 16px',
-              border: '1px solid #a7f3d0',
+              padding: '14px 18px',
+              border: '1px solid #86efac',
+              borderLeft: '4px solid #10b981',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
             }}>
-              <div style={{ fontSize: '11px', color: '#047857', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#047857', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Resolved / Fixed
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#047857' }}>
+              <div style={{ fontSize: '26px', fontWeight: '850', marginTop: '4px', color: '#047857', lineHeight: 1.1 }}>
                 {metrics.fixed}
               </div>
             </div>
 
             <div style={{
-              background: '#fef2f2',
+              background: '#ffffff',
               borderRadius: '12px',
-              padding: '12px 16px',
-              border: '1px solid #fecaca',
+              padding: '14px 18px',
+              border: '1px solid #fca5a5',
+              borderLeft: '4px solid #ef4444',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.08)',
             }}>
-              <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: '600', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Critical / Blockers
               </div>
-              <div style={{ fontSize: '24px', fontWeight: '800', marginTop: '2px', color: '#dc2626' }}>
+              <div style={{ fontSize: '26px', fontWeight: '850', marginTop: '4px', color: '#dc2626', lineHeight: 1.1 }}>
                 {metrics.critical}
               </div>
             </div>
@@ -287,40 +309,37 @@ export default function DeveloperDashboardPage() {
             href="/developer/projects"
             className="card"
             style={{
-              padding: '20px',
-              borderRadius: '14px',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-sm)',
+              padding: '22px',
+              borderRadius: '16px',
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              transition: 'all 0.2s ease',
+              gap: '18px',
               background: '#ffffff',
             }}
           >
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
               background: 'linear-gradient(135deg, #0A1929 0%, #0F3A56 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(10, 25, 41, 0.25)',
+              boxShadow: '0 4px 14px rgba(10, 25, 41, 0.3)',
             }}>
               <FolderKanban size={24} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Assigned Projects
               </div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '850', color: 'var(--color-text)', marginTop: '2px' }}>
                 {projects.length} {projects.length === 1 ? 'Project' : 'Projects'}
               </div>
-              <div style={{ fontSize: '12px', color: '#0F3A56', fontWeight: '600', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#1155d7', fontWeight: '700', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>Open project list</span>
                 <ArrowRight size={13} />
               </div>
@@ -331,40 +350,37 @@ export default function DeveloperDashboardPage() {
             href="/developer/cycles"
             className="card"
             style={{
-              padding: '20px',
-              borderRadius: '14px',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-sm)',
+              padding: '22px',
+              borderRadius: '16px',
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              transition: 'all 0.2s ease',
+              gap: '18px',
               background: '#ffffff',
             }}
           >
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #1155d7 0%, #06b6d4 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)',
+              boxShadow: '0 4px 14px rgba(17, 85, 215, 0.3)',
             }}>
               <RotateCcw size={24} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Testing Cycles
               </div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '850', color: 'var(--color-text)', marginTop: '2px' }}>
                 {allCycles.length} {allCycles.length === 1 ? 'Cycle' : 'Cycles'}
               </div>
-              <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: '600', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#1155d7', fontWeight: '700', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>Browse cycles</span>
                 <ArrowRight size={13} />
               </div>
@@ -375,40 +391,37 @@ export default function DeveloperDashboardPage() {
             href="/developer/bugs"
             className="card"
             style={{
-              padding: '20px',
-              borderRadius: '14px',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-sm)',
+              padding: '22px',
+              borderRadius: '16px',
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px',
-              transition: 'all 0.2s ease',
+              gap: '18px',
               background: '#ffffff',
             }}
           >
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
               background: 'linear-gradient(135deg, #ef4444 0%, #f97316 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+              boxShadow: '0 4px 14px rgba(239, 68, 68, 0.3)',
             }}>
               <Bug size={24} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '750', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Defect Queue
               </div>
-              <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '850', color: 'var(--color-text)', marginTop: '2px' }}>
                 {metrics.total} {metrics.total === 1 ? 'Defect' : 'Defects'}
               </div>
-              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: '600', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#ef4444', fontWeight: '700', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span>Manage queue</span>
                 <ArrowRight size={13} />
               </div>
@@ -438,6 +451,7 @@ export default function DeveloperDashboardPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <th style={{ padding: '12px 16px', width: '55px', textAlign: 'center' }}>S.No</th>
                     <th style={{ padding: '12px 16px' }}>Key</th>
                     <th style={{ padding: '12px 16px' }}>Title</th>
                     <th style={{ padding: '12px 16px' }}>Testing Cycle</th>
@@ -449,15 +463,18 @@ export default function DeveloperDashboardPage() {
                 <tbody>
                   {assignedBugs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                      <td colSpan={7} style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                         <CheckCircle2 size={32} style={{ color: '#10b981', margin: '0 auto 8px', display: 'block' }} />
                         <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--color-text)' }}>No defects currently assigned</div>
                         <div style={{ fontSize: '12.5px', marginTop: '2px' }}>Your assigned defect queue is currently empty.</div>
                       </td>
                     </tr>
                   ) : (
-                    assignedBugs.slice(0, 10).map((bug) => (
+                    assignedBugs.slice(0, 10).map((bug, index) => (
                       <tr key={bug.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
                         <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: '800', color: '#4f46e5' }}>
                           {bug.issueKey}
                         </td>

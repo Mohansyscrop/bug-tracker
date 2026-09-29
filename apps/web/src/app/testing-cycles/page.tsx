@@ -18,6 +18,11 @@ import {
   SlidersHorizontal,
   X,
   Target,
+  LayoutGrid,
+  Table as TableIcon,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function TestingCyclesPage() {
@@ -26,6 +31,10 @@ export default function TestingCyclesPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -115,9 +124,20 @@ export default function TestingCyclesPage() {
   };
 
   const filteredCycles = cycles.filter((c) => {
-    if (statusFilter === 'ALL') return true;
-    return c.status === statusFilter;
+    if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
+    if (selectedProjectId && c.project?.id !== selectedProjectId) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const mName = c.name?.toLowerCase().includes(q);
+      const mScope = c.scope?.toLowerCase().includes(q);
+      const mProj = c.project?.name?.toLowerCase().includes(q) || c.project?.key?.toLowerCase().includes(q);
+      if (!mName && !mScope && !mProj) return false;
+    }
+    return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredCycles.length / pageSize));
+  const paginatedCycles = filteredCycles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const totalTests = cycles.reduce((acc, c) => acc + (c.metrics?.totalTests || 0), 0);
   const totalPassed = cycles.reduce((acc, c) => acc + (c.metrics?.passed || 0), 0);
@@ -183,12 +203,12 @@ export default function TestingCyclesPage() {
           </div>
         </div>
 
-        {/* Filter Toolbar */}
+        {/* Filter Toolbar & View Mode Toggle */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '18px',
+          marginBottom: '14px',
           flexWrap: 'wrap',
           gap: '12px',
         }}>
@@ -205,7 +225,11 @@ export default function TestingCyclesPage() {
             {['ALL', 'IN_PROGRESS', 'PLANNED', 'COMPLETED', 'BLOCKED'].map((st) => (
               <button
                 key={st}
-                onClick={() => setStatusFilter(st)}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(st);
+                  setCurrentPage(1);
+                }}
                 className={`btn btn-sm ${statusFilter === st ? 'btn-primary' : 'btn-ghost'}`}
                 style={{
                   fontSize: '12px',
@@ -218,26 +242,159 @@ export default function TestingCyclesPage() {
             ))}
           </div>
 
-          {/* Project Filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>Project:</span>
-            <select
-              className="select"
-              style={{ width: '220px', fontSize: '12.5px', padding: '6px 30px 6px 10px' }}
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-            >
-              <option value="">All Projects</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.key})
-                </option>
-              ))}
-            </select>
+          {/* Search, Project Filter & View Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: '200px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search cycles..."
+                className="input"
+                style={{ paddingLeft: '32px', height: '34px', fontSize: '12.5px', borderRadius: '8px', width: '100%' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <select
+                className="select"
+                style={{ width: '190px', fontSize: '12.5px', padding: '5px 28px 5px 10px', height: '34px' }}
+                value={selectedProjectId}
+                onChange={(e) => {
+                  setSelectedProjectId(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">All Projects</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.key})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* View Toggle: Grid (Default) vs Table */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '2px',
+              gap: '2px',
+            }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 9px', height: '30px', fontSize: '11.5px', gap: '4px' }}
+                title="Grid View (Default)"
+              >
+                <LayoutGrid size={13} />
+                <span>Grid</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ padding: '4px 9px', height: '30px', fontSize: '11.5px', gap: '4px' }}
+                title="Table View"
+              >
+                <TableIcon size={13} />
+                <span>Table</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Cycles Grid */}
+        {/* Table Top Controls: Shown Entries & Show Entries Selector */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '14px',
+          padding: '10px 16px',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '12px',
+          boxShadow: 'var(--shadow-xs)',
+        }}>
+          {/* Shown Entries Counter */}
+          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>
+              Showing{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {filteredCycles.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+              </strong>
+              {' '}to{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {Math.min(currentPage * pageSize, filteredCycles.length)}
+              </strong>
+              {' '}of{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {filteredCycles.length}
+              </strong>
+              {' '}entries
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            {/* Show Entries Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
+              <span>Show entries:</span>
+              <select
+                className="select"
+                style={{ padding: '4px 28px 4px 10px', fontSize: '12.5px', height: '32px', width: 'auto' }}
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={6}>6</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            {/* Pagination Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                style={{ padding: '4px 10px', height: '32px' }}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev</span>
+              </button>
+              <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 6px', fontWeight: '500' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                style={{ padding: '4px 10px', height: '32px' }}
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Cycles Presentation (Grid or Table View) */}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
             {[...Array(3)].map((_, i) => (
@@ -256,9 +413,10 @@ export default function TestingCyclesPage() {
               <span>Create First Cycle</span>
             </button>
           </div>
-        ) : (
+        ) : viewMode === 'grid' ? (
+          /* ─── GRID VIEW (FIRST PRIORITY / DEFAULT) ─── */
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '18px' }}>
-            {filteredCycles.map((c) => {
+            {paginatedCycles.map((c) => {
               const m = c.metrics || { totalTests: 0, passed: 0, failed: 0, blocked: 0, notRun: 0, totalBugs: 0, bugsByArea: {} };
               const passPct = m.totalTests > 0 ? Math.round((m.passed / m.totalTests) * 100) : 0;
               const failPct = m.totalTests > 0 ? Math.round((m.failed / m.totalTests) * 100) : 0;
@@ -362,6 +520,119 @@ export default function TestingCyclesPage() {
                 </div>
               );
             })}
+          </div>
+        ) : (
+          /* ─── TABLE VIEW ─── */
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: '50px', textAlign: 'center' }}>S.No</th>
+                  <th style={{ width: '85px' }}>Cycle #</th>
+                  <th>Cycle Name & Scope</th>
+                  <th style={{ width: '160px' }}>Project</th>
+                  <th style={{ width: '130px' }}>Status</th>
+                  <th style={{ width: '100px' }}>Environment</th>
+                  <th style={{ width: '170px' }}>Test Progress</th>
+                  <th style={{ width: '90px' }}>Defects</th>
+                  <th style={{ width: '110px', textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedCycles.map((c, index) => {
+                  const m = c.metrics || { totalTests: 0, passed: 0, failed: 0, blocked: 0, notRun: 0, totalBugs: 0 };
+                  const passPct = m.totalTests > 0 ? Math.round((m.passed / m.totalTests) * 100) : 0;
+                  const serialNumber = (currentPage - 1) * pageSize + index + 1;
+
+                  const statusBadgeClass =
+                    c.status === 'IN_PROGRESS' ? 'badge-status-in_progress' :
+                    c.status === 'COMPLETED' ? 'badge-status-fixed' :
+                    c.status === 'BLOCKED' ? 'badge-critical' : 'badge-status-new';
+
+                  return (
+                    <tr key={c.id}>
+                      <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        {serialNumber}
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          background: '#e0e7ff',
+                          color: '#4338ca',
+                          display: 'inline-block',
+                          fontFamily: 'monospace',
+                        }}>
+                          #{c.cycleNumber || '01'}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <Link
+                            href={`/testing-cycles/${c.id}`}
+                            style={{ fontWeight: '650', color: 'var(--color-text)', textDecoration: 'none', fontSize: '13.5px' }}
+                          >
+                            {c.name}
+                          </Link>
+                          {c.scope && (
+                            <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
+                              {c.scope}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--color-text)' }}>
+                          {c.project?.name}
+                        </span>
+                        {c.project?.key && (
+                          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '4px' }}>
+                            ({c.project.key})
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span className={`badge ${statusBadgeClass}`}>
+                          {c.status.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-muted)' }}>
+                          {c.environment}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                            <span>{m.passed}/{m.totalTests} Passed</span>
+                            <span style={{ fontWeight: '700', color: passPct > 0 ? 'var(--color-success)' : 'inherit' }}>{passPct}%</span>
+                          </div>
+                          <div className="progress-bar-container" style={{ height: '5px' }}>
+                            <div className="progress-segment-pass" style={{ width: `${passPct}%` }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '12.5px', fontWeight: '700', color: m.totalBugs > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                          🐞 {m.totalBugs}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link
+                          href={`/testing-cycles/${c.id}`}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                        >
+                          Console →
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
 

@@ -32,7 +32,6 @@ export default function BugsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [cycles, setCycles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Filters
   const [filters, setFilters] = useState({
@@ -59,19 +58,6 @@ export default function BugsPage() {
     projectsApi.list().then((r) => setProjects(r.data ?? []));
     testingCyclesApi.list().then((c: any) => setCycles(Array.isArray(c) ? c : (c as any).data ?? []));
   }, []);
-
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id); else s.add(id);
-      return s;
-    });
-  }
-
-  function toggleAll() {
-    if (selected.size === bugs.length) setSelected(new Set());
-    else setSelected(new Set(bugs.map((b) => b.id)));
-  }
 
   function updateFilter(key: string, value: string) {
     setFilters((f) => ({ ...f, [key]: value, page: 1 }));
@@ -109,19 +95,6 @@ export default function BugsPage() {
             )}
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {selected.size > 0 && (
-              <span style={{
-                fontSize: '12px',
-                color: 'var(--color-primary)',
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '4px 10px',
-                fontWeight: '700',
-              }}>
-                {selected.size} selected
-              </span>
-            )}
             <Link href="/bugs/new" className="btn btn-primary" id="report-bug-btn">
               <PlusCircle size={15} />
               <span>Report Defect</span>
@@ -255,6 +228,84 @@ export default function BugsPage() {
           )}
         </div>
 
+        {/* Table Top Controls: Shown Entries & Show Entries Selector */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '12px',
+          padding: '10px 16px',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: '12px',
+          boxShadow: 'var(--shadow-xs)',
+        }}>
+          {/* Shown Entries Counter */}
+          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>
+              Showing{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {meta?.total === 0 ? 0 : ((filters.page || 1) - 1) * (filters.limit || 20) + 1}
+              </strong>
+              {' '}to{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {Math.min((filters.page || 1) * (filters.limit || 20), meta?.total ?? bugs.length)}
+              </strong>
+              {' '}of{' '}
+              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
+                {meta?.total ?? bugs.length}
+              </strong>
+              {' '}entries
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            {/* Show Entries Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
+              <span>Show entries:</span>
+              <select
+                id="show-entries-select"
+                className="select"
+                style={{ padding: '4px 28px 4px 10px', fontSize: '12.5px', height: '32px', width: 'auto' }}
+                value={filters.limit || 20}
+                onChange={(e) => setFilters((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            {/* Pagination Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={filters.page <= 1}
+                onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
+                style={{ padding: '4px 10px', height: '32px' }}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev</span>
+              </button>
+              <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 6px', fontWeight: '500' }}>
+                Page {filters.page} of {meta?.totalPages || 1}
+              </span>
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={!meta || filters.page >= meta.totalPages}
+                onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
+                style={{ padding: '4px 10px', height: '32px' }}
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Data Table */}
         <div className="table-wrapper">
           {loading ? (
@@ -288,67 +339,65 @@ export default function BugsPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ width: '38px', textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={selected.size === bugs.length && bugs.length > 0}
-                      onChange={toggleAll}
-                      style={{ cursor: 'pointer', accentColor: 'var(--color-primary)' }}
-                    />
-                  </th>
-                  <th>Key</th>
-                  <th>Title</th>
-                  <th>Area</th>
-                  <th>Severity</th>
-                  <th>Priority</th>
-                  <th>Status</th>
-                  <th>Assignee</th>
-                  <th>Testing Cycle</th>
-                  <th>Project</th>
-                  <th>Reported</th>
+                  <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
+                  <th style={{ width: '100px' }}>Key</th>
+                  <th>Defect Title</th>
+                  <th style={{ width: '110px' }}>Severity</th>
+                  <th style={{ width: '130px' }}>Status</th>
+                  <th style={{ width: '150px' }}>Assignee</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {bugs.map((bug) => (
-                  <tr key={bug.id} onClick={() => router.push(`/bugs/${bug.id}`)}>
-                    <td style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(bug.id)}
-                        onChange={() => toggleSelect(bug.id)}
-                        style={{ cursor: 'pointer', accentColor: 'var(--color-primary)' }}
-                      />
+                {bugs.map((bug, index) => (
+                  <tr
+                    key={bug.id}
+                    onClick={() => router.push(`/bugs/${bug.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                      {((filters.page || 1) - 1) * (filters.limit || 20) + index + 1}
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span className="ticket-badge">#{bug.issueKey}</span>
+                        <span className="ticket-badge" style={{ whiteSpace: 'nowrap' }}>#{bug.issueKey}</span>
                         {bug.isRegression && (
-                          <span title="Regression Bug" style={{ color: 'var(--color-danger)', fontSize: '12px', fontWeight: '800' }}>
+                          <span title="Regression Defect" style={{ color: 'var(--color-danger)', fontSize: '12px', fontWeight: '800' }}>
                             ↩
                           </span>
                         )}
                       </div>
                     </td>
-                    <td style={{ maxWidth: '300px' }}>
-                      <span style={{
-                        display: 'block',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: 'var(--color-text)',
-                      }}>
-                        {bug.title}
-                      </span>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{
+                          fontSize: '13.5px',
+                          fontWeight: '600',
+                          color: 'var(--color-text)',
+                          lineHeight: '1.3',
+                        }}>
+                          {bug.title}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
+                          <span className={bug.bugArea === 'REGRESSION' ? 'area-pill area-pill-regression' : 'area-pill'} style={{ fontSize: '10px', padding: '1px 6px' }}>
+                            {bug.bugArea || 'FRONTEND'}
+                          </span>
+                          {bug.testingCycle && (
+                            <span style={{ color: 'var(--color-text-faint)' }}>
+                              • Cycle: {bug.testingCycle.name.split('—')[0] || bug.testingCycle.name}
+                            </span>
+                          )}
+                          <span style={{ color: 'var(--color-text-faint)' }}>
+                            • {new Date(bug.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     </td>
                     <td>
-                      <span className={bug.bugArea === 'REGRESSION' ? 'area-pill area-pill-regression' : 'area-pill'}>
-                        {bug.bugArea || 'FRONTEND'}
+                      <span className={`badge badge-${bug.severity.toLowerCase()}`}>
+                        {bug.severity}
                       </span>
                     </td>
-                    <td><span className={`badge badge-${bug.severity.toLowerCase()}`}>{bug.severity}</span></td>
-                    <td><span className={`badge badge-${bug.priority.toLowerCase()}`}>{bug.priority}</span></td>
                     <td>
                       <span className={`badge badge-status-${bug.status.toLowerCase().replace(/_/g, '-')}`}>
                         {bug.status.replace(/_/g, ' ')}
@@ -357,23 +406,26 @@ export default function BugsPage() {
                     <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       {bug.assignedTo ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className="avatar" style={{ width: '20px', height: '20px', fontSize: '9px' }}>
+                          <span className="avatar" style={{ width: '22px', height: '22px', fontSize: '9px', fontWeight: '700' }}>
                             {bug.assignedTo.name.slice(0, 2).toUpperCase()}
                           </span>
-                          <span>{bug.assignedTo.name.split(' ')[0]}</span>
+                          <span style={{ fontWeight: '500', color: 'var(--color-text)' }}>
+                            {bug.assignedTo.name}
+                          </span>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--color-text-faint)' }}>—</span>
+                        <span style={{ color: 'var(--color-text-faint)' }}>Unassigned</span>
                       )}
                     </td>
-                    <td style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {bug.testingCycle ? bug.testingCycle.name.split('—')[0] || bug.testingCycle.name : '—'}
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
-                      {bug.project?.key}
-                    </td>
-                    <td style={{ fontSize: '11.5px', color: 'var(--color-text-faint)', whiteSpace: 'nowrap' }}>
-                      {new Date(bug.createdAt).toLocaleDateString()}
+                    <td style={{ textAlign: 'right' }}>
+                      <Link
+                        href={`/bugs/${bug.id}`}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View →
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -381,31 +433,6 @@ export default function BugsPage() {
             </table>
           )}
         </div>
-
-        {/* Pagination */}
-        {meta && meta.totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px', alignItems: 'center' }}>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={filters.page <= 1}
-              onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
-            >
-              <ChevronLeft size={14} />
-              <span>Prev</span>
-            </button>
-            <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 8px' }}>
-              Page {filters.page} of {meta.totalPages}
-            </span>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={filters.page >= meta.totalPages}
-              onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
-            >
-              <span>Next</span>
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        )}
       </div>
     </AppLayout>
   );

@@ -459,6 +459,7 @@ export default function TestingCycleDetailPage() {
                         <table className="table">
                           <thead>
                             <tr>
+                              <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                               <th>Key</th>
                               <th>Scenario Title</th>
                               <th>Requirement</th>
@@ -468,7 +469,7 @@ export default function TestingCycleDetailPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {suite.testCases.map((tc: any) => {
+                            {suite.testCases.map((tc: any, index: number) => {
                               const exec = tc.executions && tc.executions.length > 0 ? tc.executions[0] : null;
                               const status = exec?.status || 'NOT_RUN';
 
@@ -479,6 +480,9 @@ export default function TestingCycleDetailPage() {
 
                               return (
                                 <tr key={tc.id}>
+                                  <td style={{ textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                                    {index + 1}
+                                  </td>
                                   <td>
                                     <code>{tc.testCaseKey}</code>
                                   </td>
@@ -613,6 +617,7 @@ export default function TestingCycleDetailPage() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                       <th>Defect Key</th>
                       <th>Title</th>
                       <th>Area</th>
@@ -623,8 +628,11 @@ export default function TestingCycleDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBugs.map((b: any) => (
+                    {filteredBugs.map((b: any, index: number) => (
                       <tr key={b.id}>
+                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
                         <td>
                           <Link href={`/bugs/${b.id}`} style={{ textDecoration: 'none' }}>
                             <code>{b.issueKey}</code>
@@ -690,6 +698,7 @@ export default function TestingCycleDetailPage() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                     <th>Key</th>
                     <th>Requirement Title</th>
                     <th>Priority</th>
@@ -701,13 +710,16 @@ export default function TestingCycleDetailPage() {
                 <tbody>
                   {cycle.project?.requirements?.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-muted)' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-muted)' }}>
                         No requirements defined yet for this project.
                       </td>
                     </tr>
                   ) : (
-                    (cycle.project?.requirements || []).map((req: any) => (
+                    (cycle.project?.requirements || []).map((req: any, index: number) => (
                       <tr key={req.id}>
+                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
                         <td>
                           <span style={{ fontWeight: '700', color: 'var(--color-accent)' }}>
                             {req.reqKey}

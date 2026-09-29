@@ -503,6 +503,7 @@ export default function AdminPage() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                       <th>User</th>
                       <th>Email Address</th>
                       <th>System Role</th>
@@ -512,8 +513,11 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((u) => (
+                    {filteredUsers.map((u, index) => (
                       <tr key={u.id}>
+                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div className="avatar">
@@ -696,6 +700,7 @@ export default function AdminPage() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                       <th>Capability / Permission</th>
                       <th style={{ textAlign: 'center' }}>Admin</th>
                       <th style={{ textAlign: 'center' }}>Project Lead</th>
@@ -707,6 +712,9 @@ export default function AdminPage() {
                   <tbody>
                     {permissionMatrix.map((row, i) => (
                       <tr key={row.id}>
+                        <td style={{ textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                          {i + 1}
+                        </td>
                         <td style={{ fontWeight: '500', color: 'var(--color-text)' }}>{row.cap}</td>
                         <td style={{ textAlign: 'center' }}>
                           <CheckCircle2 size={16} style={{ color: 'var(--color-success)', margin: '0 auto' }} />

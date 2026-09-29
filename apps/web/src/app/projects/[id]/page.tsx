@@ -460,6 +460,7 @@ export default function ProjectDetailPage() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                       <th>Team Member</th>
                       <th>Email Address</th>
                       <th>Project Role</th>
@@ -469,16 +470,19 @@ export default function ProjectDetailPage() {
                   <tbody>
                     {(!project?.members || project.members.length === 0) ? (
                       <tr>
-                        <td colSpan={canManage ? 4 : 3} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                        <td colSpan={canManage ? 5 : 4} style={{ textAlign: 'center', padding: '24px 0', color: 'var(--color-text-muted)', fontSize: '13px' }}>
                           No team members assigned to this project yet.{' '}
                           {canManage && 'Click "+ Add Team Member" to assign people.'}
                         </td>
                       </tr>
                     ) : (
-                      project.members.map((m: any) => {
+                      project.members.map((m: any, index: number) => {
                         const badge = getRoleBadge(m.projectRole);
                         return (
                           <tr key={m.userId || m.id}>
+                            <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                              {index + 1}
+                            </td>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <div className="avatar" style={{ width: '24px', height: '24px', fontSize: '10px' }}>
@@ -625,20 +629,23 @@ export default function ProjectDetailPage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Key</th>
-                      <th>Title</th>
-                      <th>Severity</th>
-                      <th>Priority</th>
-                      <th>Status</th>
+                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
+                      <th style={{ width: '90px' }}>Key</th>
+                      <th>Defect Title</th>
+                      <th style={{ width: '110px' }}>Severity</th>
+                      <th style={{ width: '130px' }}>Status</th>
                       <th>Assignee & Project Role</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bugs.map((b: any) => {
+                    {bugs.map((b: any, index: number) => {
                       const assigneeMember = project?.members?.find((m: any) => m.userId === b.assignedToId);
                       const assigneeRole = assigneeMember ? getRoleBadge(assigneeMember.projectRole) : null;
                       return (
                         <tr key={b.id}>
+                          <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                            {index + 1}
+                          </td>
                           <td>
                             <Link href={`/bugs/${b.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
                               <code>{b.issueKey}</code>
@@ -651,9 +658,6 @@ export default function ProjectDetailPage() {
                           </td>
                           <td>
                             <span className="badge badge-low">{b.severity}</span>
-                          </td>
-                          <td>
-                            <span className="badge">{b.priority}</span>
                           </td>
                           <td>
                             <span className="badge badge-status-fixed">{b.status}</span>
@@ -687,6 +691,18 @@ export default function ProjectDetailPage() {
                     })}
                   </tbody>
                 </table>
+                <div style={{
+                  padding: '10px 16px',
+                  borderTop: '1px solid var(--color-border)',
+                  background: 'var(--color-surface-2)',
+                  fontSize: '12px',
+                  color: 'var(--color-text-muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span>Showing <strong style={{ color: 'var(--color-text)' }}>{bugs.length}</strong> {bugs.length === 1 ? 'defect entry' : 'defect entries'}</span>
+                </div>
               </div>
             )}
           </div>
@@ -777,6 +793,7 @@ export default function ProjectDetailPage() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                     <th>Req Key</th>
                     <th>Title & Description</th>
                     <th>Priority</th>
@@ -787,13 +804,16 @@ export default function ProjectDetailPage() {
                 <tbody>
                   {requirements.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--color-text-muted)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--color-text-muted)' }}>
                         No requirements defined yet.
                       </td>
                     </tr>
                   ) : (
-                    requirements.map((r) => (
+                    requirements.map((r, index) => (
                       <tr key={r.id}>
+                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                          {index + 1}
+                        </td>
                         <td>
                           <span style={{ fontWeight: '700', color: 'var(--color-accent)' }}>
                             {r.reqKey || '—'}

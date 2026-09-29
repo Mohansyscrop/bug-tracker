@@ -627,6 +627,7 @@ export default function DashboardPage() {
                   <table className="table">
                     <thead>
                       <tr>
+                        <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                         <th>Defect Key</th>
                         <th>Title</th>
                         <th>Severity</th>
@@ -637,8 +638,11 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {myFrontendBugs.map((bug) => (
+                      {myFrontendBugs.map((bug, index) => (
                         <tr key={bug.id}>
+                          <td style={{ textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                            {index + 1}
+                          </td>
                           <td>
                             <Link href={`/bugs/${bug.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
                               #{bug.issueKey}
@@ -790,6 +794,7 @@ export default function DashboardPage() {
                   <table className="table">
                     <thead>
                       <tr>
+                        <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                         <th>Defect Key</th>
                         <th>Title</th>
                         <th>Area</th>
@@ -800,8 +805,11 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {myBackendBugs.map((bug) => (
+                      {myBackendBugs.map((bug, index) => (
                         <tr key={bug.id}>
+                          <td style={{ textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                            {index + 1}
+                          </td>
                           <td>
                             <Link href={`/bugs/${bug.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
                               #{bug.issueKey}
@@ -890,6 +898,7 @@ export default function DashboardPage() {
           <table className="table">
             <thead>
               <tr>
+                <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
                 <th style={{ width: '110px' }}>Defect ID</th>
                 <th>Defect Summary</th>
                 <th style={{ width: '120px' }}>Domain</th>
@@ -903,18 +912,21 @@ export default function DashboardPage() {
             <tbody>
               {recentBugs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
                     No defect activity recorded yet.
                   </td>
                 </tr>
               ) : (
-                recentBugs.map((b) => {
+                recentBugs.map((b, index) => {
                   const areaStyle = getAreaBadgeStyle(b.bugArea);
                   const sevDot = getSeverityDotColor(b.severity);
                   const statusDot = getStatusDotColor(b.status);
 
                   return (
                     <tr key={b.id}>
+                      <td style={{ textAlign: 'center', fontWeight: '600', color: 'var(--color-text-faint)', fontSize: '12px' }}>
+                        {index + 1}
+                      </td>
                       {/* Defect Monospace Pill */}
                       <td>
                         <Link href={`/bugs/${b.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
