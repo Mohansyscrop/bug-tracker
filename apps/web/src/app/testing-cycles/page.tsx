@@ -3,6 +3,8 @@ import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { testingCyclesApi, projectsApi } from '@/lib/api';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
@@ -23,9 +25,12 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 
 export default function TestingCyclesPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [cycles, setCycles] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -35,6 +40,7 @@ export default function TestingCyclesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -104,6 +110,7 @@ export default function TestingCyclesPage() {
         plannedEndDate: form.plannedEndDate ? new Date(form.plannedEndDate).toISOString() : undefined,
       });
 
+      const cycleName = form.name;
       setShowCreateModal(false);
       setForm({
         projectId: projects[0]?.id ?? '',
@@ -115,11 +122,34 @@ export default function TestingCyclesPage() {
         startDate: new Date().toISOString().split('T')[0],
         plannedEndDate: '',
       });
+      toast.success(`Testing cycle "${cycleName}" created successfully!`);
       await loadData();
     } catch (err: any) {
-      setCreateError(err.message ?? 'Failed to create testing cycle');
+      const errMsg = err.message ?? 'Failed to create testing cycle';
+      setCreateError(errMsg);
+      toast.error(errMsg);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteCycle = async (e: React.MouseEvent, cycle: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to delete testing cycle "${cycle.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(cycle.id);
+    try {
+      await testingCyclesApi.delete(cycle.id);
+      toast.success(`Testing cycle "${cycle.name}" deleted successfully!`);
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete testing cycle');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -445,13 +475,41 @@ export default function TestingCyclesPage() {
                       <span style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
                         {c.project?.name} ({c.project?.key})
                       </span>
-                      <div style={{ display: 'flex', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span className={`badge ${statusBadgeClass}`} style={{ fontSize: '10px' }}>
                           {c.status.replace('_', ' ')}
                         </span>
                         <span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-muted)', fontSize: '10px' }}>
                           {c.environment}
                         </span>
+                        {(user?.globalRole === 'ADMIN' || user?.projectMembers?.some((m: any) => m.projectId === c.projectId && (m.projectRole === 'LEAD' || m.projectRole === 'QA'))) && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteCycle(e, c)}
+                            disabled={deletingId === c.id}
+                            title="Delete testing cycle"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '4px',
+                              transition: 'color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--color-text-muted)';
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -620,13 +678,43 @@ export default function TestingCyclesPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <Link
-                          href={`/testing-cycles/${c.id}`}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                        >
-                          Console →
-                        </Link>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                          {(user?.globalRole === 'ADMIN' || user?.projectMembers?.some((m: any) => m.projectId === c.projectId && (m.projectRole === 'LEAD' || m.projectRole === 'QA'))) && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCycle(e, c)}
+                              disabled={deletingId === c.id}
+                              title="Delete testing cycle"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'color 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--color-text-muted)';
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                          <Link
+                            href={`/testing-cycles/${c.id}`}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                          >
+                            Console →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

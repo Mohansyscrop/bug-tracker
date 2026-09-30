@@ -4,6 +4,7 @@ import Modal from '@/components/Modal';
 import { useEffect, useState, useCallback } from 'react';
 import { projectsApi, bugsApi, usersApi, testingCyclesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -30,6 +31,7 @@ export default function ProjectDetailPage() {
   const routeParams = useParams();
   const projectId = (routeParams?.id as string) || '';
   const { user } = useAuth();
+  const { toast } = useToast();
   const [project, setProject] = useState<any>(null);
   const [bugs, setBugs] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -152,11 +154,15 @@ export default function ProjectDetailPage() {
         userId: addMemberUserId,
         projectRole: addMemberRole,
       });
-      setFeedback({ type: 'success', message: 'Project member successfully added!' });
+      const msg = 'Project member successfully added!';
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       setShowAddMember(false);
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to add member' });
+      const errMsg = err.message ?? 'Failed to add member';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     } finally {
       setAddingMember(false);
     }
@@ -194,7 +200,9 @@ export default function ProjectDetailPage() {
         // Just update role
         await projectsApi.updateMemberRole(projectId, editingMember.selectedUserId, editingMember.role);
         const selUser = allUsers.find((u) => u.id === editingMember.selectedUserId);
-        setFeedback({ type: 'success', message: `Updated ${selUser?.name || 'member'}'s role to ${editingMember.role}` });
+        const msg = `Updated ${selUser?.name || 'member'}'s role to ${editingMember.role}`;
+        setFeedback({ type: 'success', message: msg });
+        toast.success(msg);
       } else {
         // Member changed: check if selected user is already in project
         const alreadyMember = project?.members?.some((m: any) => m.userId === editingMember.selectedUserId);
@@ -208,12 +216,16 @@ export default function ProjectDetailPage() {
         }
         await projectsApi.removeMember(projectId, editingMember.originalUserId);
         const selUser = allUsers.find((u) => u.id === editingMember.selectedUserId);
-        setFeedback({ type: 'success', message: `Updated team member to ${selUser?.name || 'user'} (${editingMember.role})` });
+        const msg = `Updated team member to ${selUser?.name || 'user'} (${editingMember.role})`;
+        setFeedback({ type: 'success', message: msg });
+        toast.success(msg);
       }
       setEditingMember(null);
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to update member' });
+      const errMsg = err.message ?? 'Failed to update member';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     } finally {
       setUpdatingRole(false);
     }
@@ -224,10 +236,14 @@ export default function ProjectDetailPage() {
     setFeedback(null);
     try {
       await projectsApi.removeMember(projectId, userId);
-      setFeedback({ type: 'success', message: `Removed ${name} from project` });
+      const msg = `Removed ${name} from project`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to remove member' });
+      const errMsg = err.message ?? 'Failed to remove member';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -237,12 +253,16 @@ export default function ProjectDetailPage() {
     setFeedback(null);
     try {
       await projectsApi.createMilestone(projectId, milestoneForm);
-      setFeedback({ type: 'success', message: 'Milestone created!' });
+      const msg = `Milestone "${milestoneForm.name}" created successfully!`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       setShowAddMilestone(false);
       setMilestoneForm({ name: '', versionCode: '', releaseDate: '' });
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to create milestone' });
+      const errMsg = err.message ?? 'Failed to create milestone';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     } finally {
       setAddingMilestone(false);
     }
@@ -259,12 +279,16 @@ export default function ProjectDetailPage() {
         environment: cycleForm.environment,
         scope: cycleForm.cycleCode ? `Code: ${cycleForm.cycleCode}` : undefined,
       });
-      setFeedback({ type: 'success', message: 'Testing cycle created successfully!' });
+      const msg = `Testing cycle "${cycleForm.name}" created successfully!`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       setShowAddCycle(false);
       setCycleForm({ name: '', cycleCode: '', environment: 'Staging', targetBuild: '', requirementId: '' });
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to create testing cycle' });
+      const errMsg = err.message ?? 'Failed to create testing cycle';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     } finally {
       setAddingCycle(false);
     }
@@ -282,14 +306,31 @@ export default function ProjectDetailPage() {
         description: reqForm.description || undefined,
         priority: reqForm.priority,
       });
-      setFeedback({ type: 'success', message: 'Requirement created successfully!' });
+      const msg = `Requirement "${reqForm.title}" created successfully!`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       setShowAddReq(false);
       setReqForm({ reqCode: '', title: '', description: '', priority: 'HIGH' });
       await loadData();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to create requirement' });
+      const errMsg = err.message ?? 'Failed to create requirement';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     } finally {
       setAddingReq(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!confirm(`Are you sure you want to permanently delete project "${project?.name}" (${project?.key})? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await projectsApi.delete(projectId);
+      toast.success(`Project "${project?.name}" deleted successfully`);
+      router.push('/projects');
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete project');
     }
   };
 
@@ -365,6 +406,18 @@ export default function ProjectDetailPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {canManage && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleDeleteProject}
+                  style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                  title="Delete this project"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Project</span>
+                </button>
+              )}
               <button className="btn btn-secondary btn-sm" onClick={() => setShowAddCycle(true)}>
                 <RotateCcw size={13} />
                 <span>+ New Cycle</span>

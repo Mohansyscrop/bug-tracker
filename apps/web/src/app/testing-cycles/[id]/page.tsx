@@ -3,7 +3,9 @@ import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import { useEffect, useState, useCallback } from 'react';
 import { testingCyclesApi, bugsApi } from '@/lib/api';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
@@ -23,11 +25,15 @@ import {
   Plus,
   ArrowRight,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react';
 
 export default function TestingCycleDetailPage() {
+  const router = useRouter();
   const routeParams = useParams();
   const cycleId = (routeParams?.id as string) || '';
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [cycle, setCycle] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'tests' | 'bugs' | 'requirements'>('tests');
   const [loading, setLoading] = useState(true);
@@ -100,10 +106,14 @@ export default function TestingCycleDetailPage() {
     if (!cycleId) return;
     try {
       await testingCyclesApi.update(cycleId, { status: newStatus });
-      setFeedback({ type: 'success', message: `Cycle status updated to ${newStatus}` });
+      const msg = `Cycle status updated to ${newStatus}`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to update status' });
+      const errMsg = err.message ?? 'Failed to update status';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -118,11 +128,15 @@ export default function TestingCycleDetailPage() {
         description: suiteDesc,
       });
       setShowAddSuiteModal(false);
+      const name = suiteName;
       setSuiteName('');
       setSuiteDesc('');
+      toast.success(`Test suite "${name}" added successfully!`);
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to add test suite' });
+      const errMsg = err.message ?? 'Failed to add test suite';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -136,6 +150,7 @@ export default function TestingCycleDetailPage() {
         requirementId: caseForm.requirementId || undefined,
       });
       setShowAddCaseModal(false);
+      const title = caseForm.title;
       setCaseForm({
         suiteId: cycle.testSuites[0]?.id || '',
         title: '',
@@ -146,9 +161,12 @@ export default function TestingCycleDetailPage() {
         priority: 'P2',
         requirementId: '',
       });
+      toast.success(`Test scenario "${title}" created successfully!`);
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to create test case' });
+      const errMsg = err.message ?? 'Failed to create test case';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -182,7 +200,9 @@ export default function TestingCycleDetailPage() {
 
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to record execution' });
+      const errMsg = err.message ?? 'Failed to record execution';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -208,10 +228,14 @@ export default function TestingCycleDetailPage() {
         assignedTo: bugForm.assignedTo || undefined,
       });
       setShowLogBugModal(false);
-      setFeedback({ type: 'success', message: 'Defect successfully logged and linked to this cycle!' });
+      const msg = 'Defect successfully logged and linked to this cycle!';
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to log defect' });
+      const errMsg = err.message ?? 'Failed to log defect';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
     }
   };
 
@@ -224,11 +248,40 @@ export default function TestingCycleDetailPage() {
         projectId: cycle.projectId,
       });
       setShowReqModal(false);
+      const title = reqForm.title;
       setReqForm({ title: '', description: '', priority: 'MEDIUM', status: 'ACTIVE' });
-      setFeedback({ type: 'success', message: 'Requirement added!' });
+      const msg = `Requirement "${title}" created successfully!`;
+      setFeedback({ type: 'success', message: msg });
+      toast.success(msg);
       await loadCycle();
     } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message ?? 'Failed to create requirement' });
+      const errMsg = err.message ?? 'Failed to create requirement';
+      setFeedback({ type: 'error', message: errMsg });
+      toast.error(errMsg);
+    }
+  };
+
+  // Delete Requirement
+  const handleDeleteRequirement = async (reqId: string, reqTitle: string) => {
+    if (!confirm(`Are you sure you want to delete requirement "${reqTitle}"?`)) return;
+    try {
+      await testingCyclesApi.deleteRequirement(reqId);
+      toast.success(`Requirement "${reqTitle}" deleted successfully!`);
+      await loadCycle();
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete requirement');
+    }
+  };
+
+  // Delete Cycle
+  const handleDeleteCycle = async () => {
+    if (!confirm(`Are you sure you want to delete testing cycle "${cycle?.name}"?`)) return;
+    try {
+      await testingCyclesApi.delete(cycleId);
+      toast.success(`Testing cycle "${cycle?.name}" deleted successfully!`);
+      router.push('/testing-cycles');
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete cycle');
     }
   };
 
@@ -330,6 +383,18 @@ export default function TestingCycleDetailPage() {
                   <option value="COMPLETED">Completed</option>
                   <option value="CANCELLED">Cancelled</option>
                 </select>
+                {(user?.globalRole === 'ADMIN' || user?.projectMembers?.some((m: any) => m.projectId === cycle.projectId && (m.projectRole === 'LEAD' || m.projectRole === 'QA'))) && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCycle}
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                    title="Delete testing cycle"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Cycle</span>
+                  </button>
+                )}
               </div>
 
               <div style={{ fontSize: '12px', color: 'var(--color-text-faint)', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -705,12 +770,13 @@ export default function TestingCycleDetailPage() {
                     <th>Status</th>
                     <th>Covering Test Scenarios</th>
                     <th>Associated Defects</th>
+                    <th style={{ width: '70px', textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cycle.project?.requirements?.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-muted)' }}>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-muted)' }}>
                         No requirements defined yet for this project.
                       </td>
                     </tr>
@@ -748,6 +814,30 @@ export default function TestingCycleDetailPage() {
                           <strong style={{ color: req.bugs?.length > 0 ? 'var(--color-danger)' : 'inherit' }}>
                             {req.bugs?.length || 0}
                           </strong> Defects
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRequirement(req.id, req.title)}
+                            title="Delete requirement"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              transition: 'color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--color-text-muted)';
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))

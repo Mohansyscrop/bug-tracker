@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/auth-context';
 import { NotificationsProvider } from '@/contexts/notifications-context';
+import { ToastProvider } from '@/contexts/toast-context';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,9 +35,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <NotificationsProvider>
-            {children}
-          </NotificationsProvider>
+          <ToastProvider>
+            <NotificationsProvider>
+              {children}
+            </NotificationsProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

@@ -2,6 +2,8 @@
 import AppLayout from '@/components/AppLayout';
 import { useEffect, useState, useCallback } from 'react';
 import { bugsApi, projectsApi, testingCyclesApi } from '@/lib/api';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -15,6 +17,7 @@ import {
   ChevronRight,
   Sparkles,
   Layers,
+  Trash2,
 } from 'lucide-react';
 
 const STATUSES = ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'CANNOT_REPRODUCE', 'REJECTED', 'DEFERRED', 'FIXED', 'RETEST', 'REOPENED', 'CLOSED'];
@@ -27,11 +30,14 @@ const BUG_AREAS = [
 
 export default function BugsPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [bugs, setBugs] = useState<any[]>([]);
   const [meta, setMeta] = useState<any>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [cycles, setCycles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -72,6 +78,23 @@ export default function BugsPage() {
       setFilters((f) => ({ ...f, status: 'RETEST', bugArea: '', page: 1 }));
     } else {
       setFilters((f) => ({ ...f, bugArea: '', status: '', testingCycleId: '', page: 1 }));
+    }
+  }
+
+  async function handleDeleteBug(e: React.MouseEvent, bugItem: any) {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete defect #${bugItem.issueKey}: "${bugItem.title}"? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingId(bugItem.id);
+    try {
+      await bugsApi.delete(bugItem.id);
+      toast.success(`Defect #${bugItem.issueKey} deleted successfully`);
+      fetchBugs();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete defect');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -418,14 +441,44 @@ export default function BugsPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Link
-                        href={`/bugs/${bug.id}`}
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View →
-                      </Link>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                        {(user?.globalRole === 'ADMIN' || bug.reportedById === user?.id || user?.projectMembers?.some((m: any) => m.projectId === bug.projectId && m.projectRole === 'LEAD')) && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteBug(e, bug)}
+                            disabled={deletingId === bug.id}
+                            title="Delete defect"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = '#ef4444';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = 'var(--color-text-muted)';
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                        <Link
+                          href={`/bugs/${bug.id}`}
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View →
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

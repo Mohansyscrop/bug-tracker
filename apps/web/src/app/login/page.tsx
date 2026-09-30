@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import { ApiError } from '@/lib/api';
 import {
   Mail,
@@ -15,24 +16,29 @@ import {
 
 export default function LoginPage() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotNotice, setShowForgotNotice] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       await login(email, password);
+      setSuccess('Signed in successfully! Redirecting to workspace...');
+      toast.success('Signed in successfully! Welcome back.');
     } catch (err) {
-      if (err instanceof ApiError) setError(err.message);
-      else setError('Invalid email or password. Please verify your credentials and try again.');
-    } finally {
+      const errorMsg = err instanceof ApiError ? err.message : 'Invalid email or password. Please verify your credentials and try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
     }
   }
@@ -124,7 +130,7 @@ export default function LoginPage() {
             margin: '0 0 12px',
             color: '#ffffff',
           }}>
-            Bug tracking
+            BugTracker
           </h2>
 
           <p style={{

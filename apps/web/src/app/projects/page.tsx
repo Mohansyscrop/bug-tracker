@@ -3,6 +3,8 @@ import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
+import { useToast } from '@/contexts/toast-context';
+import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
 import {
   FolderKanban,
@@ -12,14 +14,18 @@ import {
   ArrowRight,
   X,
   Layers,
+  Trash2,
 } from 'lucide-react';
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', key: '', description: '' });
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -37,10 +43,33 @@ export default function ProjectsPage() {
       setProjects((prev) => [res.data, ...prev]);
       setShowCreate(false);
       setForm({ name: '', key: '', description: '' });
+      toast.success(`Project "${res.data.name}" created successfully!`);
     } catch (err: any) {
-      setError(err.message ?? 'Failed to create project');
+      const errorMsg = err.message ?? 'Failed to create project';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleDeleteProject(e: React.MouseEvent, proj: any) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm(`Are you sure you want to delete project "${proj.name}" (${proj.key})? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(proj.id);
+    try {
+      await projectsApi.delete(proj.id);
+      setProjects((prev) => prev.filter((p) => p.id !== proj.id));
+      toast.success(`Project "${proj.name}" deleted successfully!`);
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete project');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -112,17 +141,47 @@ export default function ProjectsPage() {
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                         <code>{proj.key}</code>
-                        <span
-                          className="badge"
-                          style={{
-                            background: rStyle.bg,
-                            color: rStyle.text,
-                            borderColor: rStyle.border,
-                            fontSize: '10.5px',
-                          }}
-                        >
-                          {proj.myRole}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            className="badge"
+                            style={{
+                              background: rStyle.bg,
+                              color: rStyle.text,
+                              borderColor: rStyle.border,
+                              fontSize: '10.5px',
+                            }}
+                          >
+                            {proj.myRole}
+                          </span>
+                          {(user?.globalRole === 'ADMIN' || proj.myRole === 'LEAD') && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteProject(e, proj)}
+                              disabled={deletingId === proj.id}
+                              title="Delete project"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-text-muted)',
+                                cursor: 'pointer',
+                                padding: '3px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '4px',
+                                transition: 'color 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--color-text-muted)';
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text)', margin: '0 0 6px' }}>

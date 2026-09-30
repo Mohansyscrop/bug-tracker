@@ -3,6 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { bugsApi, projectsApi, commentsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import {
   Bug,
@@ -48,6 +49,7 @@ interface BugItem {
 
 export default function DeveloperAllBugsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [assignedBugs, setAssignedBugs] = useState<BugItem[]>([]);
@@ -76,8 +78,9 @@ export default function DeveloperAllBugsPage() {
 
   const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
+    toast[type](text);
     setTimeout(() => setToastMessage(null), 4000);
-  }, []);
+  }, [toast]);
 
   const loadData = useCallback(async () => {
     if (!user) return;

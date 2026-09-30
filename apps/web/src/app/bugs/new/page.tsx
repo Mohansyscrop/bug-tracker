@@ -3,6 +3,7 @@ import AppLayout from '@/components/AppLayout';
 import { useState, useEffect, useRef } from 'react';
 import { bugsApi, projectsApi, testingCyclesApi, attachmentsApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -21,6 +22,7 @@ import {
 
 export default function NewBugPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
@@ -169,9 +171,12 @@ export default function NewBugPage() {
         }
       }
 
+      toast.success(`Defect "${payload.title}" created successfully!`);
       router.push(`/bugs/${createdBugId}`);
     } catch (err: any) {
-      setError(err.message ?? 'Failed to log defect');
+      const errMsg = err.message ?? 'Failed to log defect';
+      setError(errMsg);
+      toast.error(errMsg);
       setLoading(false);
     }
   }

@@ -4,6 +4,7 @@ import Modal from '@/components/Modal';
 import { useState, useEffect, useRef } from 'react';
 import { bugsApi, commentsApi, attachmentsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import { useRouter, useParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { formatDistanceToNow } from 'date-fns';
@@ -56,6 +57,7 @@ export default function BugDetailPage() {
   const routeParams = useParams();
   const bugId = (routeParams?.id as string) || '';
   const { user } = useAuth();
+  const { toast } = useToast();
   const [bug, setBug] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
@@ -68,6 +70,7 @@ export default function BugDetailPage() {
   const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'activity' | 'attachments'>('details');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingBug, setDeletingBug] = useState(false);
 
   // Attachments & Lightbox state (for viewing QA screenshots)
   const [lightboxImg, setLightboxImg] = useState<{ url: string; filename: string; size?: number } | null>(null);
@@ -84,9 +87,10 @@ export default function BugDetailPage() {
         attachments: (b.attachments || []).filter((a: any) => a.id !== attachmentId),
       }));
       setAttachmentDeleteId(null);
+      toast.success('Attachment deleted successfully');
     } catch (err: any) {
       console.error('Failed to delete attachment:', err);
-      alert(err.message || 'Failed to delete attachment');
+      toast.error(err.message || 'Failed to delete attachment');
     } finally {
       setDeletingAttachment(false);
     }
@@ -110,6 +114,9 @@ export default function BugDetailPage() {
       const newComment = res?.data || res;
       setBug((b: any) => ({ ...b, comments: [...(b.comments ?? []), newComment] }));
       setComment('');
+      toast.success('Comment posted successfully');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to post comment');
     } finally {
       setCommenting(false);
     }
@@ -125,6 +132,7 @@ export default function BugDetailPage() {
         comments: (b.comments ?? []).filter((c: any) => c.id !== commentId),
       }));
       setConfirmDeleteId(null);
+      toast.success('Comment deleted successfully');
     } catch (err: any) {
       console.error('Delete comment error:', err);
       if (err?.status === 404) {
@@ -133,11 +141,28 @@ export default function BugDetailPage() {
           comments: (b.comments ?? []).filter((c: any) => c.id !== commentId),
         }));
         setConfirmDeleteId(null);
+        toast.success('Comment deleted successfully');
       } else {
-        alert(err?.message || 'Failed to delete comment');
+        toast.error(err?.message || 'Failed to delete comment');
       }
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleDeleteBug() {
+    if (!bugId || !bug) return;
+    if (!confirm(`Are you sure you want to permanently delete defect ${bug.issueKey}: "${bug.title}"? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingBug(true);
+    try {
+      await bugsApi.delete(bugId);
+      toast.success(`Defect ${bug.issueKey} deleted successfully`);
+      router.push('/bugs');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete defect');
+      setDeletingBug(false);
     }
   }
 
@@ -301,14 +326,29 @@ export default function BugDetailPage() {
             )}
           </div>
 
-          <button
-            onClick={toggleWatch}
-            className={`btn btn-sm ${watching ? 'btn-secondary' : 'btn-ghost'}`}
-            style={{ fontSize: '12px', gap: '5px' }}
-          >
-            {watching ? <EyeOff size={13} /> : <Eye size={13} />}
-            <span>{watching ? 'Watching' : 'Watch Ticket'}</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {(user?.globalRole === 'ADMIN' || bug.reportedById === user?.id || user?.projectMembers?.some((m: any) => m.projectId === bug.projectId && m.projectRole === 'LEAD')) && (
+              <button
+                type="button"
+                onClick={handleDeleteBug}
+                disabled={deletingBug}
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', fontSize: '12px', gap: '5px' }}
+                title="Delete Defect"
+              >
+                <Trash2 size={13} />
+                <span>{deletingBug ? 'Deleting...' : 'Delete Defect'}</span>
+              </button>
+            )}
+            <button
+              onClick={toggleWatch}
+              className={`btn btn-sm ${watching ? 'btn-secondary' : 'btn-ghost'}`}
+              style={{ fontSize: '12px', gap: '5px' }}
+            >
+              {watching ? <EyeOff size={13} /> : <Eye size={13} />}
+              <span>{watching ? 'Watching' : 'Watch Ticket'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Retest Workflow Callout Banner */}

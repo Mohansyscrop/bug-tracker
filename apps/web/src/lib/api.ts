@@ -154,6 +154,7 @@ export const projectsApi = {
   create: (dto: any) => api.post<{ data: any }>('/projects', dto),
   get: (id: string) => api.get<{ data: any }>(`/projects/${id}`),
   update: (id: string, dto: any) => api.put<{ data: any }>(`/projects/${id}`, dto),
+  delete: (id: string) => api.delete<{ message: string }>(`/projects/${id}`),
   members: (id: string) => api.get<{ data: any[] }>(`/projects/${id}/members`),
   addMember: (id: string, dto: any) => api.post(`/projects/${id}/members`, dto),
   updateMemberRole: (id: string, userId: string, projectRole: string) =>

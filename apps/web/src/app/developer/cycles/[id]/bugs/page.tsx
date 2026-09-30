@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { bugsApi, testingCyclesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import Link from 'next/link';
 import {
   RotateCcw,
@@ -67,6 +68,7 @@ interface BugItem {
 
 export default function CycleAssignedBugsPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const params = useParams();
   const cycleId = params.id as string;
 
@@ -97,8 +99,9 @@ export default function CycleAssignedBugsPage() {
 
   const showToast = useCallback((text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
+    toast[type](text);
     setTimeout(() => setToastMessage(null), 4000);
-  }, []);
+  }, [toast]);
 
   const loadData = useCallback(async () => {
     if (!user || !cycleId) return;

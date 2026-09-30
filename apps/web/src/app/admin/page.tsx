@@ -4,6 +4,7 @@ import Modal from '@/components/Modal';
 import { useEffect, useState } from 'react';
 import { usersApi, projectsApi, bugsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -51,6 +52,7 @@ const DEFAULT_PERMISSIONS = [
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'system'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
@@ -177,12 +179,16 @@ export default function AdminPage() {
 
       await usersApi.updateProjects(editingUser.id, projectMembers);
 
-      setActionSuccess(`Successfully updated roles & permissions for ${editingUser.name}`);
+      const successMsg = `Successfully updated roles & permissions for ${editingUser.name}`;
+      setActionSuccess(successMsg);
+      toast.success(successMsg);
       setTimeout(() => setActionSuccess(''), 4000);
       setEditingUser(null);
       await fetchUsers();
     } catch (err: any) {
-      setEditRolesError(err.message ?? 'Failed to update user roles');
+      const errMsg = err.message ?? 'Failed to update user roles';
+      setEditRolesError(errMsg);
+      toast.error(errMsg);
     } finally {
       setSavingRoles(false);
     }
@@ -203,7 +209,9 @@ export default function AdminPage() {
         globalRole: isGlobalAdmin ? 'ADMIN' : 'STANDARD',
       });
 
-      setActionSuccess('User successfully created!');
+      const successMsg = `User account for "${createForm.name}" created successfully!`;
+      setActionSuccess(successMsg);
+      toast.success(successMsg);
       setTimeout(() => setActionSuccess(''), 4000);
       setShowCreateModal(false);
       setCreateForm({
@@ -216,13 +224,16 @@ export default function AdminPage() {
       });
       await fetchUsers();
     } catch (err: any) {
+      let errMsg = '';
       if (err.status === 401 || err.message?.includes('Unauthorized')) {
-        setCreateError('Your session has expired. Please refresh the page or log in again.');
+        errMsg = 'Your session has expired. Please refresh the page or log in again.';
       } else if (err.status === 409 || err.message?.includes('already exists')) {
-        setCreateError(`A user with email "${createForm.email}" already exists. Please use a unique email.`);
+        errMsg = `A user with email "${createForm.email}" already exists. Please use a unique email.`;
       } else {
-        setCreateError(err.message ?? 'Failed to create user');
+        errMsg = err.message ?? 'Failed to create user';
       }
+      setCreateError(errMsg);
+      toast.error(errMsg);
     } finally {
       setCreating(false);
     }
@@ -237,18 +248,22 @@ export default function AdminPage() {
     }
     try {
       await usersApi.updateRole(targetUser.id, newRole);
-      setActionSuccess(`Updated ${targetUser.name}'s global role to ${newRole}`);
+      const msg = `Updated ${targetUser.name}'s global role to ${newRole}`;
+      setActionSuccess(msg);
+      toast.success(msg);
       setTimeout(() => setActionSuccess(''), 4000);
       await fetchUsers();
     } catch (err: any) {
-      setActionError(err.message ?? 'Failed to update role');
+      const errMsg = err.message ?? 'Failed to update role';
+      setActionError(errMsg);
+      toast.error(errMsg);
       setTimeout(() => setActionError(''), 4000);
     }
   }
 
   async function handleDeleteUser(targetUser: any) {
     if (targetUser.id === user?.id) {
-      alert('You cannot deactivate your own account.');
+      toast.error('You cannot deactivate your own account.');
       return;
     }
     if (!confirm(`Are you sure you want to deactivate user "${targetUser.name}"?`)) {
@@ -256,11 +271,15 @@ export default function AdminPage() {
     }
     try {
       await usersApi.delete(targetUser.id);
-      setActionSuccess(`Deactivated user ${targetUser.name}`);
+      const msg = `Deactivated user ${targetUser.name}`;
+      setActionSuccess(msg);
+      toast.success(msg);
       setTimeout(() => setActionSuccess(''), 4000);
       await fetchUsers();
     } catch (err: any) {
-      setActionError(err.message ?? 'Failed to deactivate user');
+      const errMsg = err.message ?? 'Failed to deactivate user';
+      setActionError(errMsg);
+      toast.error(errMsg);
       setTimeout(() => setActionError(''), 4000);
     }
   }
