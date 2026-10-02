@@ -893,7 +893,7 @@ export default function AdminPage() {
                 value={createForm.assignedRole}
                 onChange={(e) => setCreateForm((f) => ({ ...f, assignedRole: e.target.value }))}
               >
-                <option value="DEV">Developer — Assigned defects, moves to in-progress & fixes</option>
+                <option value="DEV">Developer — Assigned bugs, moves to in-progress & fixes</option>
                 <option value="QA">QA / Tester — Reports bugs, verifies builds, closes defects</option>
                 <option value="LEAD">Project Lead — Manages team, milestones & state triage</option>
                 <option value="VIEWER">Viewer — Read-only project & ticket access</option>

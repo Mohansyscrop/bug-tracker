@@ -1,6 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { bugsApi, projectsApi, testingCyclesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
@@ -101,6 +101,20 @@ export default function BugsPage() {
   const hasActiveFilters = Boolean(
     filters.search || filters.status || filters.severity || filters.priority || filters.projectId || filters.bugArea || filters.testingCycleId
   );
+
+  const totalPages = Math.max(1, meta?.totalPages || 1);
+  const paginationRange = useMemo(() => {
+    const delta = 2;
+    const range: (number | string)[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= (filters.page || 1) - delta && i <= (filters.page || 1) + delta)) {
+        range.push(i);
+      } else if (range[range.length - 1] !== '...') {
+        range.push('...');
+      }
+    }
+    return range;
+  }, [filters.page, totalPages]);
 
   return (
     <AppLayout>
@@ -251,81 +265,44 @@ export default function BugsPage() {
           )}
         </div>
 
-        {/* Table Top Controls: Shown Entries & Show Entries Selector */}
+        {/* Results Summary Count & Per Page Size Selector */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
           flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '12px',
-          padding: '10px 16px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-xs)',
+          gap: '10px',
         }}>
-          {/* Shown Entries Counter */}
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>
-              Showing{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {meta?.total === 0 ? 0 : ((filters.page || 1) - 1) * (filters.limit || 20) + 1}
-              </strong>
-              {' '}to{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {Math.min((filters.page || 1) * (filters.limit || 20), meta?.total ?? bugs.length)}
-              </strong>
-              {' '}of{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {meta?.total ?? bugs.length}
-              </strong>
-              {' '}entries
-            </span>
+          <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
+            Showing {meta?.total === 0 ? 0 : ((filters.page || 1) - 1) * (filters.limit || 20) + 1}–
+            {Math.min((filters.page || 1) * (filters.limit || 20), meta?.total ?? bugs.length)} of {meta?.total ?? bugs.length} {meta?.total === 1 ? 'defect' : 'defects'}
+            {hasActiveFilters && ` (filtered)`}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            {/* Show Entries Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-              <span>Show entries:</span>
-              <select
-                id="show-entries-select"
-                className="select"
-                style={{ padding: '4px 28px 4px 10px', fontSize: '12.5px', height: '32px', width: 'auto' }}
-                value={filters.limit || 20}
-                onChange={(e) => setFilters((f) => ({ ...f, limit: Number(e.target.value), page: 1 }))}
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-
-            {/* Pagination Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+            <span>Per page:</span>
+            {[10, 20, 50, 100].map((size) => (
               <button
-                className="btn btn-secondary btn-sm"
-                disabled={filters.page <= 1}
-                onClick={() => setFilters((f) => ({ ...f, page: f.page - 1 }))}
-                style={{ padding: '4px 10px', height: '32px' }}
+                key={size}
+                type="button"
+                onClick={() => setFilters((f) => ({ ...f, limit: size, page: 1 }))}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: (filters.limit || 20) === size ? '#4f46e5' : '#ffffff',
+                  color: (filters.limit || 20) === size ? '#ffffff' : 'var(--color-text)',
+                  border: (filters.limit || 20) === size ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                  boxShadow: (filters.limit || 20) === size ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <ChevronLeft size={14} />
-                <span>Prev</span>
+                {size}
               </button>
-              <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 6px', fontWeight: '500' }}>
-                Page {filters.page} of {meta?.totalPages || 1}
-              </span>
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={!meta || filters.page >= meta.totalPages}
-                onClick={() => setFilters((f) => ({ ...f, page: f.page + 1 }))}
-                style={{ padding: '4px 10px', height: '32px' }}
-              >
-                <span>Next</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -486,6 +463,103 @@ export default function BugsPage() {
             </table>
           )}
         </div>
+
+        {/* Scalable Full Pagination Footer */}
+        {bugs.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '22px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--color-border)',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+              Page {filters.page || 1} of {totalPages} ({meta?.total ?? bugs.length} total defects)
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setFilters((f) => ({ ...f, page: Math.max(1, (f.page || 1) - 1) }))}
+                disabled={(filters.page || 1) <= 1}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: (filters.page || 1) <= 1 ? 0.4 : 1,
+                  cursor: (filters.page || 1) <= 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev</span>
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {paginationRange.map((page, idx) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${idx}`} style={{ padding: '0 6px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        ...
+                      </span>
+                    );
+                  }
+                  const pageNum = Number(page);
+                  const isCurrent = pageNum === (filters.page || 1);
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setFilters((f) => ({ ...f, page: pageNum }))}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: isCurrent ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                        background: isCurrent ? '#4f46e5' : '#ffffff',
+                        color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: isCurrent ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setFilters((f) => ({ ...f, page: Math.min(totalPages, (f.page || 1) + 1) }))}
+                disabled={(filters.page || 1) >= totalPages}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: (filters.page || 1) >= totalPages ? 0.4 : 1,
+                  cursor: (filters.page || 1) >= totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

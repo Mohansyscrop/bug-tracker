@@ -13,21 +13,19 @@ import {
   ArrowRight,
   ArrowLeft,
   Calendar,
-  Layers,
   CheckCircle2,
   AlertTriangle,
   PlayCircle,
-  Clock,
-  Sparkles,
   RefreshCw,
   Search,
   LayoutGrid,
   List,
   Filter,
-  ArrowUpDown,
-  SlidersHorizontal,
   X,
-  Target,
+  ShieldCheck,
+  User,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 
 interface ProjectDetail {
@@ -50,6 +48,22 @@ interface TestingCycleItem {
   environment: string;
   startDate?: string;
   plannedEndDate?: string;
+  completedAt?: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  metrics?: {
+    totalTests: number;
+    passed: number;
+    failed: number;
+    blocked: number;
+    notRun: number;
+    passRate: number;
+    totalBugs: number;
+    openBugs: number;
+  };
 }
 
 interface BugItem {
@@ -74,9 +88,11 @@ export default function ProjectTestingCyclesPage() {
   const [allCycles, setAllCycles] = useState<TestingCycleItem[]>([]);
   const [assignedBugs, setAssignedBugs] = useState<BugItem[]>([]);
 
-  // Search, Filters & View Mode
+  // Quick Tab Filter: 'ALL' | 'ACTION_REQUIRED' | 'IN_PROGRESS' | 'COMPLETED'
+  const [activeTab, setActiveTab] = useState<'ALL' | 'ACTION_REQUIRED' | 'IN_PROGRESS' | 'COMPLETED'>('ALL');
+
+  // Search & View Mode
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
   const [envFilter, setEnvFilter] = useState('ALL');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
@@ -94,7 +110,7 @@ export default function ProjectTestingCyclesPage() {
       ]);
       setProject(projRes.data || null);
       const rawCycles: TestingCycleItem[] = Array.isArray(cyclesRes) ? cyclesRes : (cyclesRes as any)?.data || [];
-      // Developer portal only displays cycles once QA transitions them to IN_PROGRESS (excluding PLANNED)
+      // Developer portal displays cycles once QA transitions them to IN_PROGRESS or beyond (excluding PLANNED)
       const cycles = rawCycles.filter((c) => c.status !== 'PLANNED');
       setAllCycles(cycles);
       setAssignedBugs(bugsRes.data || []);
@@ -115,15 +131,27 @@ export default function ProjectTestingCyclesPage() {
     return allCycles.map((cycle) => {
       const cycleBugs = assignedBugs.filter((b) => b.testingCycleId === cycle.id);
       const criticalCount = cycleBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length;
+      const highCount = cycleBugs.filter((b) => b.severity === 'HIGH' || b.priority === 'P2').length;
+      const mediumLowCount = cycleBugs.length - criticalCount - highCount;
+
+      const openCount = cycleBugs.filter((b) => ['OPEN', 'REOPENED', 'NEW', 'CONFIRMED'].includes(b.status?.toUpperCase())).length;
       const inProgressCount = cycleBugs.filter((b) => b.status === 'IN_PROGRESS').length;
-      const fixedCount = cycleBugs.filter((b) => b.status === 'FIXED' || b.status === 'CLOSED').length;
+      const fixedCount = cycleBugs.filter((b) => ['FIXED', 'RESOLVED', 'CLOSED'].includes(b.status?.toUpperCase())).length;
+
+      const fixProgressPercent = cycleBugs.length > 0 ? Math.round((fixedCount / cycleBugs.length) * 100) : 100;
+      const needsAttention = cycleBugs.length > 0 && (openCount + inProgressCount) > 0;
 
       return {
         ...cycle,
         devBugsCount: cycleBugs.length,
         criticalCount,
+        highCount,
+        mediumLowCount,
+        openCount,
         inProgressCount,
         fixedCount,
+        fixProgressPercent,
+        needsAttention,
       };
     });
   }, [allCycles, assignedBugs]);
@@ -137,12 +165,27 @@ export default function ProjectTestingCyclesPage() {
     return Array.from(set);
   }, [enrichedCycles]);
 
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    const actionRequired = enrichedCycles.filter((c) => c.needsAttention).length;
+    const inProgress = enrichedCycles.filter((c) => c.status === 'IN_PROGRESS').length;
+    const completed = enrichedCycles.filter((c) => c.status === 'COMPLETED' || c.status === 'CLOSED').length;
+    return {
+      all: enrichedCycles.length,
+      actionRequired,
+      inProgress,
+      completed,
+    };
+  }, [enrichedCycles]);
+
   // Filtered & Sorted Cycles
   const processedCycles = useMemo(() => {
     return enrichedCycles
       .filter((cycle) => {
-        // Status filter
-        if (statusFilter !== 'ALL' && cycle.status !== statusFilter) return false;
+        // Tab Filter
+        if (activeTab === 'ACTION_REQUIRED' && !cycle.needsAttention) return false;
+        if (activeTab === 'IN_PROGRESS' && cycle.status !== 'IN_PROGRESS') return false;
+        if (activeTab === 'COMPLETED' && cycle.status !== 'COMPLETED' && cycle.status !== 'CLOSED') return false;
 
         // Environment filter
         if (envFilter !== 'ALL' && cycle.environment !== envFilter) return false;
@@ -159,13 +202,19 @@ export default function ProjectTestingCyclesPage() {
 
         return true;
       })
-      .sort((a, b) => (b.cycleNumber || 0) - (a.cycleNumber || 0));
-  }, [enrichedCycles, statusFilter, envFilter, searchQuery]);
+      .sort((a, b) => {
+        if (activeTab === 'ALL') {
+          if (a.needsAttention && !b.needsAttention) return -1;
+          if (!a.needsAttention && b.needsAttention) return 1;
+        }
+        return (b.cycleNumber || 0) - (a.cycleNumber || 0);
+      });
+  }, [enrichedCycles, activeTab, envFilter, searchQuery]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, envFilter, pageSize]);
+  }, [searchQuery, activeTab, envFilter, pageSize]);
 
   // Pagination calculation
   const totalPages = Math.max(1, Math.ceil(processedCycles.length / pageSize));
@@ -176,25 +225,43 @@ export default function ProjectTestingCyclesPage() {
 
   // Counts for header metrics
   const myCyclesCount = useMemo(() => enrichedCycles.filter((c) => c.devBugsCount > 0).length, [enrichedCycles]);
-  const criticalDefectCount = useMemo(() => assignedBugs.filter((b) => b.severity === 'CRITICAL' || b.priority === 'P1').length, [assignedBugs]);
+  const actionRequiredDefects = useMemo(() => {
+    return assignedBugs.filter((b) => ['OPEN', 'REOPENED', 'NEW', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status?.toUpperCase())).length;
+  }, [assignedBugs]);
+  const criticalDefectCount = useMemo(() => {
+    return assignedBugs.filter((b) => (b.severity === 'CRITICAL' || b.priority === 'P1') && !['FIXED', 'CLOSED'].includes(b.status?.toUpperCase())).length;
+  }, [assignedBugs]);
+  const fixedDefectCount = useMemo(() => {
+    return assignedBugs.filter((b) => ['FIXED', 'RESOLVED', 'CLOSED'].includes(b.status?.toUpperCase())).length;
+  }, [assignedBugs]);
 
-  const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'ALL' || envFilter !== 'ALL';
+  const hasActiveFilters = searchQuery.trim() !== '' || envFilter !== 'ALL' || activeTab !== 'ALL';
 
   const resetFilters = () => {
     setSearchQuery('');
-    setStatusFilter('ALL');
     setEnvFilter('ALL');
+    setActiveTab('ALL');
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch {
+      return null;
+    }
   };
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'IN_PROGRESS':
-        return { background: 'rgba(99, 102, 241, 0.12)', color: '#4f46e5', border: '1px solid rgba(99, 102, 241, 0.25)' };
+        return { background: 'rgba(99, 102, 241, 0.1)', color: '#4f46e5', border: '1px solid rgba(99, 102, 241, 0.2)' };
       case 'COMPLETED':
       case 'CLOSED':
         return { background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' };
-      case 'PLANNED':
-        return { background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' };
       case 'CANCELLED':
         return { background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' };
       default:
@@ -204,16 +271,16 @@ export default function ProjectTestingCyclesPage() {
 
   return (
     <AppLayout>
-      <div style={{ padding: '24px 32px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+      <div style={{ padding: '20px 28px 48px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
 
-        {/* Breadcrumb Navigation */}
-        <div style={{
+        {/* Clean Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           fontSize: '13px',
           color: 'var(--color-text-muted)',
-          marginBottom: '20px',
+          marginBottom: '16px',
         }}>
           <Link
             href="/developer/projects"
@@ -221,43 +288,43 @@ export default function ProjectTestingCyclesPage() {
               color: 'var(--color-primary)',
               textDecoration: 'none',
               fontWeight: '600',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '5px',
             }}
           >
             <ArrowLeft size={14} />
             <span>Projects</span>
           </Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} style={{ color: 'var(--color-text-faint)' }} />
           <span style={{ fontWeight: '600', color: 'var(--color-text)' }}>
             {project?.name || 'Project'}
           </span>
-          <ChevronRight size={14} />
-          <span style={{ color: 'var(--color-text-faint)' }}>Testing Cycles</span>
-        </div>
+          <ChevronRight size={13} style={{ color: 'var(--color-text-faint)' }} />
+          <span style={{ color: 'var(--color-text-muted)' }}>Testing Cycles</span>
+        </nav>
 
-        {/* Project Header Banner */}
+        {/* Project Header Banner with Stats */}
         <div style={{
           background: '#ffffff',
-          borderRadius: '16px',
-          padding: '24px 28px',
+          borderRadius: '14px',
+          padding: '18px 24px',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-card)',
-          marginBottom: '24px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          marginBottom: '16px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '20px',
+          gap: '16px',
         }}>
-          <div style={{ flex: '1 1 500px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{
                 fontFamily: 'monospace',
                 fontSize: '12px',
                 fontWeight: '800',
-                padding: '3px 8px',
+                padding: '2px 8px',
                 borderRadius: '6px',
                 background: 'rgba(15, 58, 86, 0.08)',
                 color: '#0F3A56',
@@ -265,401 +332,440 @@ export default function ProjectTestingCyclesPage() {
               }}>
                 {project?.key || 'PROJ'}
               </span>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: '700',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                background: '#d1fae5',
-                color: '#047857',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}>
-                Role: {project?.myRole || 'Developer'}
-              </span>
+              <h1 style={{ fontSize: '22px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                {project?.name || 'Project Testing Cycles'}
+              </h1>
             </div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-              {project?.name || 'Project Testing Cycles'}
-            </h1>
-            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', margin: '6px 0 0', maxWidth: '680px', lineHeight: '1.45' }}>
-              {project?.description || 'Browse testing cycles, filter by environment and active status, and inspect your assigned defects.'}
-            </p>
           </div>
 
-          {/* Quick Metrics Bar */}
+          {/* Quick Metrics */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '18px',
-            padding: '12px 22px',
-            borderRadius: '14px',
+            gap: '16px',
+            padding: '8px 18px',
+            borderRadius: '10px',
             background: '#f8fafc',
             border: '1px solid var(--color-border)',
             flexWrap: 'wrap',
           }}>
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Cycles
               </div>
-              <div style={{ fontSize: '22px', fontWeight: '800', color: 'var(--color-text)', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-text)', marginTop: '1px' }}>
                 {allCycles.length}
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: 'var(--color-border)' }} />
+            <div style={{ width: '1px', height: '26px', background: 'var(--color-border)' }} />
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 My Cycles
               </div>
-              <div style={{ fontSize: '22px', fontWeight: '800', color: '#4f46e5', marginTop: '2px' }}>
+              <div style={{ fontSize: '18px', fontWeight: '800', color: '#4f46e5', marginTop: '1px' }}>
                 {myCyclesCount}
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: 'var(--color-border)' }} />
+            <div style={{ width: '1px', height: '26px', background: 'var(--color-border)' }} />
 
             <div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Assigned Defects
+              <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Action Needed
               </div>
-              <div style={{ fontSize: '22px', fontWeight: '800', color: criticalDefectCount > 0 ? '#dc2626' : 'var(--color-text)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span>{assignedBugs.length}</span>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '800',
+                color: actionRequiredDefects > 0 ? (criticalDefectCount > 0 ? '#dc2626' : '#ea580c') : '#059669',
+                marginTop: '1px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}>
+                <span>{actionRequiredDefects}</span>
                 {criticalDefectCount > 0 && (
-                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '1px 6px', borderRadius: '6px', background: '#fee2e2', color: '#b91c1c' }}>
+                  <span style={{
+                    fontSize: '10px',
+                    fontWeight: '700',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: '#fee2e2',
+                    color: '#b91c1c',
+                  }}>
                     {criticalDefectCount} crit
                   </span>
                 )}
               </div>
             </div>
+
+            <div style={{ width: '1px', height: '26px', background: 'var(--color-border)' }} />
+
+            <div>
+              <div style={{ fontSize: '10.5px', color: 'var(--color-text-muted)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Resolved
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: '800', color: '#059669', marginTop: '1px' }}>
+                {fixedDefectCount}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Scalable Controls Toolbar */}
-        <div className="card" style={{
-          padding: '16px 20px',
-          borderRadius: '14px',
-          border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-sm)',
-          marginBottom: '20px',
-          background: 'var(--color-surface)',
+        {/* UNIFIED COMPACT TOOLBAR: Tabs & Filters Collapsed into 1 Sleek Bar */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          marginBottom: '16px',
         }}>
+          {/* Left: Compact Segmented Tab Pills */}
           <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '14px',
+            display: 'inline-flex',
+            background: '#f1f5f9',
+            padding: '3px',
+            borderRadius: '9px',
+            gap: '3px',
+            border: '1px solid var(--color-border)',
           }}>
-            {/* Left: Search Bar & Filters */}
-            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-              {/* Search Bar */}
-              <div style={{
-                display: 'flex',
+            <button
+              type="button"
+              onClick={() => setActiveTab('ALL')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeTab === 'ALL' ? '#ffffff' : 'transparent',
+                color: activeTab === 'ALL' ? '#1e293b' : 'var(--color-text-muted)',
+                fontWeight: activeTab === 'ALL' ? '700' : '600',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
                 alignItems: 'center',
-                background: '#f8fafc',
-                border: '1px solid var(--color-border)',
+                gap: '6px',
+                boxShadow: activeTab === 'ALL' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>All Cycles</span>
+              <span style={{
+                fontSize: '10.5px',
+                padding: '0 5px',
                 borderRadius: '8px',
-                padding: '6px 12px',
-                gap: '8px',
-                width: '240px',
+                background: activeTab === 'ALL' ? '#e2e8f0' : 'rgba(0,0,0,0.05)',
+                color: 'inherit',
+                fontWeight: '700',
               }}>
-                <Search size={14} style={{ color: 'var(--color-text-muted)' }} />
-                <input
-                  type="text"
-                  placeholder="Search cycles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: '12.5px',
-                    background: 'transparent',
-                    color: 'var(--color-text)',
-                    width: '100%',
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
+                {tabCounts.all}
+              </span>
+            </button>
 
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+            <button
+              type="button"
+              onClick={() => setActiveTab('ACTION_REQUIRED')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeTab === 'ACTION_REQUIRED' ? '#ffffff' : 'transparent',
+                color: activeTab === 'ACTION_REQUIRED' ? '#c2410c' : (tabCounts.actionRequired > 0 ? '#ea580c' : 'var(--color-text-muted)'),
+                fontWeight: activeTab === 'ACTION_REQUIRED' ? '700' : '600',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: activeTab === 'ACTION_REQUIRED' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AlertCircle size={13} />
+              <span>Needs Attention</span>
+              <span style={{
+                fontSize: '10.5px',
+                padding: '0 5px',
+                borderRadius: '8px',
+                background: activeTab === 'ACTION_REQUIRED' ? '#ffedd5' : (tabCounts.actionRequired > 0 ? '#fee2e2' : 'rgba(0,0,0,0.05)'),
+                color: activeTab === 'ACTION_REQUIRED' ? '#c2410c' : (tabCounts.actionRequired > 0 ? '#b91c1c' : 'inherit'),
+                fontWeight: '700',
+              }}>
+                {tabCounts.actionRequired}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('IN_PROGRESS')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeTab === 'IN_PROGRESS' ? '#ffffff' : 'transparent',
+                color: activeTab === 'IN_PROGRESS' ? '#2563eb' : 'var(--color-text-muted)',
+                fontWeight: activeTab === 'IN_PROGRESS' ? '700' : '600',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: activeTab === 'IN_PROGRESS' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>Active Testing</span>
+              <span style={{
+                fontSize: '10.5px',
+                padding: '0 5px',
+                borderRadius: '8px',
+                background: activeTab === 'IN_PROGRESS' ? '#dbeafe' : 'rgba(0,0,0,0.05)',
+                color: 'inherit',
+                fontWeight: '700',
+              }}>
+                {tabCounts.inProgress}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('COMPLETED')}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: 'none',
+                background: activeTab === 'COMPLETED' ? '#ffffff' : 'transparent',
+                color: activeTab === 'COMPLETED' ? '#047857' : 'var(--color-text-muted)',
+                fontWeight: activeTab === 'COMPLETED' ? '700' : '600',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: activeTab === 'COMPLETED' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>Completed</span>
+              <span style={{
+                fontSize: '10.5px',
+                padding: '0 5px',
+                borderRadius: '8px',
+                background: activeTab === 'COMPLETED' ? '#d1fae5' : 'rgba(0,0,0,0.05)',
+                color: 'inherit',
+                fontWeight: '700',
+              }}>
+                {tabCounts.completed}
+              </span>
+            </button>
+          </div>
+
+          {/* Right: Search, Environment & View Switches */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '5px 10px',
+              gap: '6px',
+              width: '210px',
+            }}>
+              <Search size={13} style={{ color: 'var(--color-text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search cycles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  padding: '6px 12px',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '12px',
+                  background: 'transparent',
+                  color: 'var(--color-text)',
+                  width: '100%',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Environment select (only if available) */}
+            {availableEnvironments.length > 0 && (
+              <select
+                value={envFilter}
+                onChange={(e) => setEnvFilter(e.target.value)}
+                style={{
+                  padding: '5px 10px',
                   borderRadius: '8px',
                   border: '1px solid var(--color-border)',
-                  background: '#f8fafc',
-                  fontSize: '12.5px',
+                  background: '#ffffff',
+                  fontSize: '12px',
                   fontWeight: '600',
                   color: 'var(--color-text)',
                   cursor: 'pointer',
                   outline: 'none',
+                  height: '31px',
                 }}
               >
-                <option value="ALL">All Active Statuses</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CLOSED">Closed</option>
+                <option value="ALL">All Environments</option>
+                {availableEnvironments.map((env) => (
+                  <option key={env} value={env}>{env}</option>
+                ))}
               </select>
+            )}
 
-              {/* Environment Filter */}
-              {availableEnvironments.length > 0 && (
-                <select
-                  value={envFilter}
-                  onChange={(e) => setEnvFilter(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border)',
-                    background: '#f8fafc',
-                    fontSize: '12.5px',
-                    fontWeight: '600',
-                    color: 'var(--color-text)',
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                >
-                  <option value="ALL">All Environments</option>
-                  {availableEnvironments.map((env) => (
-                    <option key={env} value={env}>{env}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Right: View Mode Toggles & Refresh */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* View Toggle (Grid / Table) */}
-              <div style={{
-                display: 'inline-flex',
-                background: '#f1f5f9',
-                padding: '2px',
-                borderRadius: '8px',
-                gap: '2px',
-                border: '1px solid var(--color-border)',
-              }}>
-                <button
-                  type="button"
-                  title="Card Grid View"
-                  onClick={() => setViewMode('grid')}
-                  style={{
-                    padding: '5px 8px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: viewMode === 'grid' ? '#ffffff' : 'transparent',
-                    color: viewMode === 'grid' ? '#4f46e5' : 'var(--color-text-muted)',
-                    boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  type="button"
-                  title="Compact Table / List View"
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    padding: '5px 8px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: viewMode === 'table' ? '#ffffff' : 'transparent',
-                    color: viewMode === 'table' ? '#4f46e5' : 'var(--color-text-muted)',
-                    boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <List size={15} />
-                </button>
-              </div>
-
-              {/* Refresh Button */}
+            {/* View Mode Toggle */}
+            <div style={{
+              display: 'inline-flex',
+              background: '#f1f5f9',
+              padding: '2px',
+              borderRadius: '7px',
+              gap: '2px',
+              border: '1px solid var(--color-border)',
+            }}>
               <button
                 type="button"
-                onClick={() => {
-                  setRefreshing(true);
-                  loadProjectData();
-                }}
-                disabled={refreshing}
-                title="Refresh testing cycles"
-                className="btn btn-secondary btn-sm"
-                style={{ padding: '6px 10px', height: '33px' }}
-              >
-                <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              </button>
-            </div>
-          </div>
-
-          {/* Active filter pills */}
-          {hasActiveFilters && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              marginTop: '12px',
-              paddingTop: '12px',
-              borderTop: '1px solid var(--color-border)',
-              fontSize: '12px',
-            }}>
-              <span style={{ color: 'var(--color-text-muted)', fontWeight: '600' }}>Active Filters:</span>
-
-              {statusFilter !== 'ALL' && (
-                <span style={{
-                  background: '#eff6ff',
-                  color: '#2563eb',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}>
-                  Status: {statusFilter.replace('_', ' ')}
-                  <button onClick={() => setStatusFilter('ALL')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>✕</button>
-                </span>
-              )}
-
-              {envFilter !== 'ALL' && (
-                <span style={{
-                  background: '#ecfdf5',
-                  color: '#059669',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}>
-                  Environment: {envFilter}
-                  <button onClick={() => setEnvFilter('ALL')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>✕</button>
-                </span>
-              )}
-
-              {searchQuery && (
-                <span style={{
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}>
-                  Search: "{searchQuery}"
-                  <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>✕</button>
-                </span>
-              )}
-
-              <button
-                onClick={resetFilters}
+                title="Card Grid View"
+                onClick={() => setViewMode('grid')}
                 style={{
-                  background: 'none',
+                  padding: '4px 8px',
+                  borderRadius: '5px',
                   border: 'none',
-                  color: '#ef4444',
-                  fontWeight: '700',
                   cursor: 'pointer',
-                  padding: '2px 6px',
-                  fontSize: '11.5px',
-                  textDecoration: 'underline',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
-                Clear all
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                type="button"
+                title="Compact Table View"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <List size={14} />
               </button>
             </div>
-          )}
-        </div>
 
-        {/* Results Count & Summary */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
-            Showing {processedCycles.length === 0 ? '0' : `${(currentPage - 1) * pageSize + 1}-${Math.min(currentPage * pageSize, processedCycles.length)}`} of {processedCycles.length} {processedCycles.length === 1 ? 'cycle' : 'cycles'}
-            {hasActiveFilters && ` (filtered from ${allCycles.length} total)`}
-          </div>
-
-          {/* Page size picker */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-            <span>Per page:</span>
-            {[12, 24, 48].map((size) => (
-              <button
-                key={size}
-                onClick={() => setPageSize(size)}
-                style={{
-                  padding: '2px 7px',
-                  borderRadius: '4px',
-                  background: pageSize === size ? 'linear-gradient(135deg, #1d68f2 0%, #1155d7 100%)' : '#ffffff',
-                  color: pageSize === size ? '#ffffff' : 'var(--color-text)',
-                  border: pageSize === size ? '1px solid #1155d7' : '1px solid var(--color-border)',
-                  boxShadow: pageSize === size ? '0 2px 6px rgba(17, 85, 215, 0.35)' : 'none',
-                  cursor: 'pointer',
-                  fontSize: '11.5px',
-                  fontWeight: '700',
-                }}
-              >
-                {size}
-              </button>
-            ))}
+            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setRefreshing(true);
+                loadProjectData();
+              }}
+              disabled={refreshing}
+              title="Refresh testing cycles"
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '5px 8px', height: '31px' }}
+            >
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
+
+        {/* Active Filter Clear Tag */}
+        {hasActiveFilters && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '14px',
+            fontSize: '11.5px',
+          }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Filtered results:</span>
+            {activeTab !== 'ALL' && (
+              <span style={{ background: '#fef3c7', color: '#92400e', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                {activeTab === 'ACTION_REQUIRED' ? 'Needs Attention' : activeTab.replace('_', ' ')}
+              </span>
+            )}
+            {envFilter !== 'ALL' && (
+              <span style={{ background: '#ecfdf5', color: '#059669', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                {envFilter}
+              </span>
+            )}
+            {searchQuery && (
+              <span style={{ background: '#f1f5f9', color: '#334155', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                "{searchQuery}"
+              </span>
+            )}
+            <button
+              onClick={resetFilters}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Content Section: Loading, Empty, Table, or Grid */}
         {loading ? (
-          <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-            <div className="spinner" style={{ width: '32px', height: '32px', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', margin: 0 }}>
+          <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+            <div className="spinner" style={{ width: '28px', height: '28px', margin: '0 auto 10px' }} />
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
               Loading testing cycles...
             </p>
           </div>
         ) : allCycles.length === 0 ? (
-          <div className="card" style={{ padding: '48px 32px', textAlign: 'center', border: '1px dashed var(--color-border)' }}>
-            <RotateCcw size={42} style={{ color: 'var(--color-text-faint)', margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
+          <div className="card" style={{ padding: '40px 24px', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: '14px' }}>
+            <RotateCcw size={36} style={{ color: 'var(--color-text-faint)', margin: '0 auto 10px' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
               No Active Testing Cycles
             </h3>
-            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', marginTop: '6px', maxWidth: '480px', margin: '6px auto 0' }}>
-              No testing cycles are currently in progress for this project. Once QA transitions a planned cycle to In Progress, it will appear here.
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px', maxWidth: '440px', margin: '4px auto 0' }}>
+              No testing cycles are currently in progress for this project.
             </p>
           </div>
         ) : processedCycles.length === 0 ? (
-          <div className="card" style={{ padding: '48px 32px', textAlign: 'center', border: '1px dashed var(--color-border)' }}>
-            <Filter size={36} style={{ color: 'var(--color-text-faint)', margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '16.5px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
-              No Cycles Match the Current Filters
+          <div className="card" style={{ padding: '36px 24px', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: '14px' }}>
+            <Filter size={32} style={{ color: 'var(--color-text-faint)', margin: '0 auto 10px' }} />
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
+              {activeTab === 'ACTION_REQUIRED' ? 'All Clear! No Action Needed' : 'No Cycles Found'}
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
-              No testing cycles matched your search or filter criteria.
+            <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+              {activeTab === 'ACTION_REQUIRED'
+                ? 'You have zero open bugs in the current active cycles.'
+                : 'No cycles match your filter criteria.'}
             </p>
             <button
               onClick={resetFilters}
               className="btn btn-secondary btn-sm"
-              style={{ marginTop: '14px' }}
+              style={{ marginTop: '12px' }}
             >
-              Reset All Filters
+              Reset Filters
             </button>
           </div>
         ) : viewMode === 'table' ? (
           /* ========================================================================= */
-          /* TABLE VIEW: Optimized for High Volume / Maximum Testing Cycles           */
+          /* TABLE VIEW: Compact & Structured                                         */
           /* ========================================================================= */
-          <div className="card" style={{ padding: '0', borderRadius: '14px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+          <div className="card" style={{ padding: '0', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
                 <thead>
                   <tr style={{
                     background: '#f8fafc',
@@ -669,152 +775,119 @@ export default function ProjectTestingCyclesPage() {
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                   }}>
-                    <th style={{ padding: '12px 16px', width: '55px', textAlign: 'center' }}>S.No</th>
-                    <th style={{ padding: '12px 16px', width: '90px' }}>Cycle #</th>
-                    <th style={{ padding: '12px 16px' }}>Cycle Title & Scope</th>
-                    <th style={{ padding: '12px 16px', width: '110px' }}>Type</th>
-                    <th style={{ padding: '12px 16px', width: '110px' }}>Environment</th>
-                    <th style={{ padding: '12px 16px', width: '130px' }}>Status</th>
-                    <th style={{ padding: '12px 16px', width: '160px' }}>My Assigned Defects</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right', width: '140px' }}>Action</th>
+                    <th style={{ padding: '10px 14px', width: '70px' }}>Cycle #</th>
+                    <th style={{ padding: '10px 14px' }}>Cycle Title & Environment</th>
+                    <th style={{ padding: '10px 14px', width: '130px' }}>QA Lead</th>
+                    <th style={{ padding: '10px 14px', width: '110px' }}>Status</th>
+                    <th style={{ padding: '10px 14px', width: '180px' }}>Bugs</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'right', width: '110px' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedCycles.map((cycle, index) => {
+                  {paginatedCycles.map((cycle) => {
                     const statusBadge = getStatusBadgeStyle(cycle.status);
-                    const serialNumber = (currentPage - 1) * pageSize + index + 1;
+
                     return (
                       <tr
                         key={cycle.id}
                         style={{
                           borderBottom: '1px solid var(--color-border)',
+                          background: cycle.needsAttention ? 'rgba(254, 242, 242, 0.3)' : 'transparent',
                           transition: 'background 0.15s ease',
                         }}
                       >
-                        {/* S.No */}
-                        <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                          {serialNumber}
-                        </td>
-
                         {/* Cycle # */}
-                        <td style={{ padding: '12px 16px' }}>
+                        <td style={{ padding: '12px 14px' }}>
                           <span style={{
                             fontSize: '11px',
                             fontWeight: '800',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
                             background: '#e0e7ff',
                             color: '#4338ca',
-                            display: 'inline-block',
                             fontFamily: 'monospace',
                           }}>
-                            #{cycle.cycleNumber || '01'}
+                            #{String(cycle.cycleNumber || '01').padStart(2, '0')}
                           </span>
                         </td>
 
-                        {/* Title & Description */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ fontWeight: '700', color: 'var(--color-text)', fontSize: '13.5px' }}>
-                            {cycle.name}
-                          </div>
-                          {cycle.description && (
-                            <div style={{
-                              fontSize: '12px',
-                              color: 'var(--color-text-muted)',
-                              marginTop: '2px',
-                              maxWidth: '480px',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
+                        {/* Title & Env */}
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: '700', color: 'var(--color-text)', fontSize: '13px' }}>
+                              {cycle.name}
+                            </span>
+                            <span style={{
+                              fontSize: '10px',
+                              fontWeight: '700',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              border: '1px solid #a7f3d0',
                             }}>
-                              {cycle.description}
-                            </div>
-                          )}
+                              {cycle.environment || 'QA'}
+                            </span>
+                          </div>
                         </td>
 
-                        {/* Type */}
-                        <td style={{ padding: '12px 16px' }}>
+                        {/* QA Lead */}
+                        <td style={{ padding: '12px 14px', color: 'var(--color-text-secondary)', fontSize: '12px' }}>
+                          {cycle.createdBy?.name || 'QA Lead'}
+                        </td>
+
+                        {/* Status */}
+                        <td style={{ padding: '12px 14px' }}>
                           <span style={{
                             fontSize: '10.5px',
                             fontWeight: '700',
                             padding: '2px 7px',
-                            borderRadius: '4px',
-                            background: '#f1f5f9',
-                            color: '#475569',
-                            textTransform: 'uppercase',
-                          }}>
-                            {cycle.type || 'FUNCTIONAL'}
-                          </span>
-                        </td>
-
-                        {/* Environment */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            background: '#ecfdf5',
-                            color: '#065f46',
-                            border: '1px solid #a7f3d0',
-                          }}>
-                            {cycle.environment || 'QA'}
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
+                            borderRadius: '10px',
                             ...statusBadge,
                             textTransform: 'uppercase',
-                            letterSpacing: '0.03em',
                           }}>
                             {cycle.status.replace('_', ' ')}
                           </span>
                         </td>
 
-                        {/* Assigned Defects */}
-                        <td style={{ padding: '12px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{
-                              fontSize: '12.5px',
-                              fontWeight: '700',
-                              color: cycle.devBugsCount > 0 ? '#4f46e5' : 'var(--color-text-faint)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                            }}>
-                              <Bug size={14} style={{ color: cycle.devBugsCount > 0 ? '#4f46e5' : 'var(--color-text-faint)' }} />
-                              <span>{cycle.devBugsCount} defects</span>
-                            </span>
-
-                            {cycle.criticalCount > 0 && (
+                        {/* Bugs */}
+                        <td style={{ padding: '12px 14px' }}>
+                          {cycle.devBugsCount > 0 ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{
-                                fontSize: '10px',
-                                fontWeight: '800',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                color: cycle.needsAttention ? '#dc2626' : '#059669',
+                              }}>
+                                {cycle.devBugsCount} {cycle.devBugsCount === 1 ? 'Bug' : 'Bugs'}
+                              </span>
+                              <span style={{
+                                fontSize: '10.5px',
+                                fontWeight: '700',
                                 padding: '1px 5px',
                                 borderRadius: '4px',
-                                background: '#fee2e2',
-                                color: '#b91c1c',
+                                background: cycle.fixProgressPercent === 100 ? '#d1fae5' : '#fee2e2',
+                                color: cycle.fixProgressPercent === 100 ? '#047857' : '#b91c1c',
                               }}>
-                                {cycle.criticalCount} crit
+                                {cycle.fixedCount}/{cycle.devBugsCount} Fixed
                               </span>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '11.5px', color: 'var(--color-text-faint)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <ShieldCheck size={13} style={{ color: '#059669' }} />
+                              <span>0 bugs</span>
+                            </span>
+                          )}
                         </td>
 
                         {/* Action CTA */}
-                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
                           <Link
                             href={`/developer/cycles/${cycle.id}/bugs`}
-                            className="btn btn-secondary btn-sm"
+                            className={cycle.needsAttention ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
                             style={{
-                              fontSize: '12px',
-                              padding: '5px 12px',
+                              fontSize: '11.5px',
+                              padding: '4px 10px',
                               fontWeight: '700',
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -822,7 +895,7 @@ export default function ProjectTestingCyclesPage() {
                             }}
                           >
                             <span>Open</span>
-                            <ArrowRight size={13} />
+                            <ArrowRight size={12} />
                           </Link>
                         </td>
                       </tr>
@@ -834,225 +907,269 @@ export default function ProjectTestingCyclesPage() {
           </div>
         ) : (
           /* ========================================================================= */
-          /* GRID VIEW: Responsive and compact for comfortable visual scanning         */
+          /* GRID VIEW: Compact, High-Density Professional Developer Cards             */
           /* ========================================================================= */
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(330px, 1fr))',
-            gap: '18px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '16px',
           }}>
             {paginatedCycles.map((cycle) => {
               const statusBadge = getStatusBadgeStyle(cycle.status);
+              const startDateFormatted = formatDate(cycle.startDate);
+
               return (
                 <div
                   key={cycle.id}
                   className="card"
                   style={{
-                    padding: '20px',
-                    borderRadius: '14px',
-                    border: '1px solid var(--color-border)',
-                    boxShadow: 'var(--shadow-sm)',
+                    padding: '16px 18px',
+                    borderRadius: '12px',
+                    border: '1px solid',
+                    borderColor: cycle.criticalCount > 0
+                      ? '#fca5a5'
+                      : cycle.needsAttention
+                        ? '#fdba74'
+                        : 'var(--color-border)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '16px',
-                    transition: 'all 0.2s ease',
-                    background: 'var(--color-surface)',
+                    gap: '12px',
+                    transition: 'all 0.15s ease',
+                    background: '#ffffff',
                   }}
                 >
+                  {/* Top Row: Badges & Status */}
                   <div>
-                    {/* Header Badges */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: '800',
-                        padding: '2.5px 8px',
-                        borderRadius: '6px',
-                        background: '#e0e7ff',
-                        color: '#4338ca',
-                        fontFamily: 'monospace',
-                      }}>
-                        Cycle {cycle.cycleNumber || '01'}
-                      </span>
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '700',
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        background: '#f1f5f9',
-                        color: '#475569',
-                        textTransform: 'uppercase',
-                      }}>
-                        {cycle.type || 'FUNCTIONAL'}
-                      </span>
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '700',
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        background: '#ecfdf5',
-                        color: '#065f46',
-                      }}>
-                        {cycle.environment || 'QA'}
-                      </span>
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '700',
-                        padding: '2px 7px',
-                        borderRadius: '4px',
-                        ...statusBadge,
-                        marginLeft: 'auto',
-                      }}>
-                        {cycle.status.replace('_', ' ')}
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: '#e0e7ff',
+                          color: '#4338ca',
+                          fontFamily: 'monospace',
+                        }}>
+                          #{String(cycle.cycleNumber || '01').padStart(2, '0')}
+                        </span>
+
+                        <span style={{
+                          fontSize: '10.5px',
+                          fontWeight: '700',
+                          padding: '1.5px 6px',
+                          borderRadius: '4px',
+                          background: '#ecfdf5',
+                          color: '#065f46',
+                          border: '1px solid #a7f3d0',
+                          textTransform: 'uppercase',
+                        }}>
+                          {cycle.environment || 'QA'}
+                        </span>
+
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          padding: '1.5px 6px',
+                          borderRadius: '4px',
+                          background: '#f1f5f9',
+                          color: '#475569',
+                          textTransform: 'uppercase',
+                        }}>
+                          {cycle.type || 'FUNCTIONAL'}
+                        </span>
+                      </div>
+
+                      {/* Urgency Badge */}
+                      <div>
+                        {cycle.criticalCount > 0 ? (
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '800',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#b91c1c' }} />
+                            {cycle.criticalCount} Blocker
+                          </span>
+                        ) : cycle.needsAttention ? (
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '800',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
+                            background: '#ffedd5',
+                            color: '#c2410c',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}>
+                            <AlertCircle size={11} />
+                            Action Needed
+                          </span>
+                        ) : cycle.devBugsCount > 0 ? (
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
+                            background: '#ecfdf5',
+                            color: '#047857',
+                            border: '1px solid #a7f3d0',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}>
+                            <Check size={11} />
+                            All Fixed
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '600',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
+                            ...statusBadge,
+                            textTransform: 'uppercase',
+                          }}>
+                            {cycle.status.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Cycle Title */}
-                    <h3 style={{ fontSize: '16.5px', fontWeight: '800', color: 'var(--color-text)', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: '15.5px', fontWeight: '800', color: 'var(--color-text)', margin: '0 0 4px', lineHeight: '1.3' }}>
                       {cycle.name}
                     </h3>
 
-                    {cycle.description ? (
-                      <p style={{
-                        fontSize: '12.5px',
-                        color: 'var(--color-text-secondary)',
-                        margin: 0,
-                        lineHeight: '1.45',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}>
-                        {cycle.description}
-                      </p>
-                    ) : (
-                      <p style={{ fontSize: '12.5px', color: 'var(--color-text-faint)', margin: 0, fontStyle: 'italic' }}>
-                        No scope description provided.
-                      </p>
-                    )}
+                    {/* Metadata line */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '11.5px',
+                      color: 'var(--color-text-muted)',
+                      flexWrap: 'wrap',
+                    }}>
+                      <span>QA: {cycle.createdBy?.name || 'QA Lead'}</span>
+                      <span>•</span>
+                      <span>{cycle.metrics?.totalBugs ?? 1} Cycle Bug{(cycle.metrics?.totalBugs ?? 1) === 1 ? '' : 's'}</span>
+                      {startDateFormatted && (
+                        <>
+                          <span>•</span>
+                          <span>{startDateFormatted}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Defect Metrics Bar */}
+                  {/* Compact Bottom Row: Bug Summary & CTA */}
                   <div style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: '#f8fafc',
-                    border: '1px solid var(--color-border)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    paddingTop: '10px',
+                    borderTop: '1px solid #f1f5f9',
+                    marginTop: '2px',
+                    gap: '10px',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                      <Bug size={15} style={{ color: cycle.devBugsCount > 0 ? '#4f46e5' : 'var(--color-text-muted)' }} />
-                      <span style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--color-text)' }}>
-                        {cycle.devBugsCount} Assigned {cycle.devBugsCount === 1 ? 'Defect' : 'Defects'}
-                      </span>
+                    {/* Left: Bugs badge & mini status */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 auto' }}>
+                      {cycle.devBugsCount > 0 ? (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Bug size={14} style={{ color: cycle.needsAttention ? '#ea580c' : '#059669' }} />
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-text)' }}>
+                              {cycle.devBugsCount} {cycle.devBugsCount === 1 ? 'Bug' : 'Bugs'}
+                            </span>
+                          </div>
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            background: cycle.fixProgressPercent === 100 ? '#d1fae5' : '#fee2e2',
+                            color: cycle.fixProgressPercent === 100 ? '#047857' : '#b91c1c',
+                          }}>
+                            {cycle.fixedCount}/{cycle.devBugsCount} Fixed
+                          </span>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '11.5px', color: 'var(--color-text-faint)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <ShieldCheck size={13} style={{ color: '#059669' }} />
+                          <span>0 bugs</span>
+                        </span>
+                      )}
                     </div>
 
-                    {cycle.criticalCount > 0 && (
-                      <span style={{
-                        fontSize: '10.5px',
-                        fontWeight: '800',
-                        padding: '2px 6px',
-                        borderRadius: '6px',
-                        background: '#fee2e2',
-                        color: '#b91c1c',
-                      }}>
-                        {cycle.criticalCount} Critical
-                      </span>
-                    )}
+                    {/* Right: CTA Button */}
+                    <Link
+                      href={`/developer/cycles/${cycle.id}/bugs`}
+                      className={cycle.needsAttention ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+                      style={{
+                        padding: '5px 12px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        borderRadius: '7px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>{cycle.devBugsCount > 0 ? 'View Bugs' : 'Inspect'}</span>
+                      <ArrowRight size={12} />
+                    </Link>
                   </div>
-
-                  {/* Redirection Link */}
-                  <Link
-                    href={`/developer/cycles/${cycle.id}/bugs`}
-                    className="btn btn-primary"
-                    style={{
-                      justifyContent: 'center',
-                      padding: '8px 14px',
-                      fontSize: '12.5px',
-                      fontWeight: '700',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>View Assigned Defects</span>
-                    <ArrowRight size={14} />
-                  </Link>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Scalable Pagination Footer Controls */}
+        {/* Scalable Pagination Footer */}
         {totalPages > 1 && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginTop: '28px',
-            paddingTop: '16px',
+            marginTop: '22px',
+            paddingTop: '14px',
             borderTop: '1px solid var(--color-border)',
             flexWrap: 'wrap',
-            gap: '12px',
+            gap: '10px',
           }}>
-            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
               Page {currentPage} of {totalPages}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="btn btn-secondary btn-sm"
                 style={{
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
                   opacity: currentPage === 1 ? 0.5 : 1,
                   cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
                 }}
               >
-                <ChevronLeft size={14} />
-                <span>Previous</span>
+                <ChevronLeft size={13} />
+                <span>Prev</span>
               </button>
-
-              {/* Numbered page pills (window of up to 5 pages) */}
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                .map((p, idx, arr) => {
-                  const showEllipsisBefore = idx > 0 && p - arr[idx - 1] > 1;
-                  return (
-                    <span key={p} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      {showEllipsisBefore && (
-                        <span style={{ padding: '0 4px', color: 'var(--color-text-faint)' }}>...</span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPage(p)}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          border: currentPage === p ? '1px solid #1155d7' : '1px solid var(--color-border)',
-                          background: currentPage === p ? 'linear-gradient(135deg, #1d68f2 0%, #1155d7 100%)' : '#ffffff',
-                          color: currentPage === p ? '#ffffff' : 'var(--color-text)',
-                          fontWeight: '700',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          boxShadow: currentPage === p ? '0 2px 8px rgba(17, 85, 215, 0.35)' : 'none',
-                        }}
-                      >
-                        {p}
-                      </button>
-                    </span>
-                  );
-                })}
 
               <button
                 type="button"
@@ -1060,16 +1177,17 @@ export default function ProjectTestingCyclesPage() {
                 disabled={currentPage === totalPages}
                 className="btn btn-secondary btn-sm"
                 style={{
-                  padding: '6px 12px',
+                  padding: '5px 10px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
                   opacity: currentPage === totalPages ? 0.5 : 1,
                   cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
                 }}
               >
                 <span>Next</span>
-                <ChevronRight size={14} />
+                <ChevronRight size={13} />
               </button>
             </div>
           </div>

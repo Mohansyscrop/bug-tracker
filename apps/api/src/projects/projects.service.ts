@@ -18,7 +18,7 @@ export class ProjectsService {
             where: { userId },
             select: { projectRole: true },
           },
-          _count: { select: { bugs: true, members: true } },
+          _count: { select: { bugs: true, members: true, testingCycles: true } },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -36,7 +36,7 @@ export class ProjectsService {
         project: {
           include: {
             createdBy: { select: { id: true, name: true, email: true } },
-            _count: { select: { bugs: true, members: true } },
+            _count: { select: { bugs: true, members: true, testingCycles: true } },
           },
         },
       },

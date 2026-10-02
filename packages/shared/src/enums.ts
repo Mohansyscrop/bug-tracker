@@ -125,13 +125,11 @@ export const BUG_STATE_TRANSITIONS: TransitionMap = {
   [BugStatus.FIXED]: {
     [ProjectRole.QA]: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
     [ProjectRole.LEAD]: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
-    [ProjectRole.DEV]: [BugStatus.RETEST, BugStatus.CLOSED],
     ADMIN: [BugStatus.RETEST, BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.RETEST]: {
     [ProjectRole.QA]: [BugStatus.CLOSED, BugStatus.REOPENED],
     [ProjectRole.LEAD]: [BugStatus.CLOSED, BugStatus.REOPENED],
-    [ProjectRole.DEV]: [BugStatus.CLOSED, BugStatus.REOPENED],
     ADMIN: [BugStatus.CLOSED, BugStatus.REOPENED],
   },
   [BugStatus.REOPENED]: {

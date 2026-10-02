@@ -45,7 +45,7 @@ import {
 
 const TRANSITIONS: Record<string, Record<string, string[]>> = {
   LEAD: { NEW: ['ASSIGNED','DEFERRED','CLOSED'], ASSIGNED: ['IN_PROGRESS','DEFERRED'], IN_PROGRESS: ['DEFERRED'], CANNOT_REPRODUCE: ['IN_PROGRESS','CLOSED'], REJECTED: ['IN_PROGRESS','CLOSED'], DEFERRED: ['ASSIGNED'], FIXED: ['RETEST','CLOSED','REOPENED'], RETEST: ['CLOSED','REOPENED'], REOPENED: ['IN_PROGRESS','DEFERRED'], CLOSED: ['REOPENED'] },
-  DEV: { ASSIGNED: ['IN_PROGRESS'], IN_PROGRESS: ['FIXED','CANNOT_REPRODUCE','REJECTED'], FIXED: ['RETEST','CLOSED'], RETEST: ['CLOSED','REOPENED'], REOPENED: ['IN_PROGRESS'] },
+  DEV: { ASSIGNED: ['IN_PROGRESS'], IN_PROGRESS: ['FIXED','CANNOT_REPRODUCE','REJECTED'], REOPENED: ['IN_PROGRESS'] },
   QA: { NEW: ['CLOSED'], CANNOT_REPRODUCE: ['IN_PROGRESS','CLOSED'], REJECTED: ['IN_PROGRESS','CLOSED'], FIXED: ['RETEST','CLOSED','REOPENED'], RETEST: ['CLOSED','REOPENED'], CLOSED: ['REOPENED'] },
   ADMIN: { NEW: ['ASSIGNED','DEFERRED','CLOSED'], ASSIGNED: ['IN_PROGRESS','DEFERRED','CLOSED'], IN_PROGRESS: ['FIXED','CANNOT_REPRODUCE','REJECTED','DEFERRED'], CANNOT_REPRODUCE: ['IN_PROGRESS','CLOSED'], REJECTED: ['IN_PROGRESS','CLOSED'], DEFERRED: ['ASSIGNED','CLOSED'], FIXED: ['RETEST','CLOSED','REOPENED'], RETEST: ['CLOSED','REOPENED'], REOPENED: ['IN_PROGRESS','DEFERRED'], CLOSED: ['REOPENED'] },
 };
@@ -261,9 +261,13 @@ export default function BugDetailPage() {
   }
 
   const projectMember = bug?.project?.members?.find((m: any) => m.userId === user?.id);
-  const effectiveRole = user?.globalRole === 'ADMIN'
+  let rawRole = user?.globalRole === 'ADMIN'
     ? 'ADMIN'
     : (projectMember?.projectRole || (user?.id === bug?.reportedById ? 'QA' : (user?.id === bug?.assignedToId ? 'DEV' : 'QA')));
+  if (rawRole && (rawRole.endsWith('_DEV') || rawRole === 'DEVELOPER')) rawRole = 'DEV';
+  if (rawRole === 'PROJECT_LEAD') rawRole = 'LEAD';
+  const effectiveRole = rawRole;
+  const isQAOrLeadOrAdmin = ['QA', 'LEAD', 'ADMIN'].includes(effectiveRole);
   const availableTransitions = bug ? (TRANSITIONS[effectiveRole]?.[bug.status] ?? []) : [];
 
   if (loading) {
@@ -369,30 +373,34 @@ export default function BugDetailPage() {
               <CheckCircle2 size={20} style={{ color: 'var(--color-success)' }} />
               <div>
                 <strong style={{ fontSize: '13.5px', color: 'var(--color-text)' }}>
-                  Ready for QA Verification & Retest
+                  {isQAOrLeadOrAdmin ? 'Ready for QA Verification & Retest' : 'Defect Fixed — Awaiting QA Verification'}
                 </strong>
                 <p style={{ margin: '2px 0 0', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-                  Developer has addressed this defect. Execute verification tests in the current build to sign off or reopen.
+                  {isQAOrLeadOrAdmin
+                    ? 'Developer has addressed this defect. Execute verification tests in the current build to sign off or reopen.'
+                    : 'Developer has addressed this defect. QA will execute verification tests in the current build to sign off or reopen.'}
                 </p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setTransitionModal({ status: 'RETEST' })}
-                className="btn btn-sm btn-success"
-              >
-                Mark Retesting
-              </button>
-              <button
-                onClick={() => {
-                  setResolution('FIXED_VERIFIED');
-                  setTransitionModal({ status: 'CLOSED' });
-                }}
-                className="btn btn-sm btn-primary"
-              >
-                Verify & Close Defect
-              </button>
-            </div>
+            {isQAOrLeadOrAdmin && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setTransitionModal({ status: 'RETEST' })}
+                  className="btn btn-sm btn-success"
+                >
+                  Mark Retesting
+                </button>
+                <button
+                  onClick={() => {
+                    setResolution('FIXED_VERIFIED');
+                    setTransitionModal({ status: 'CLOSED' });
+                  }}
+                  className="btn btn-sm btn-primary"
+                >
+                  Verify & Close Defect
+                </button>
+              </div>
+            )}
           </div>
         )}
 

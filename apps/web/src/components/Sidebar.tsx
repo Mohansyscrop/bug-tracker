@@ -19,15 +19,15 @@ import {
 const NAV = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Workspace' },
   { href: '/projects', icon: FolderKanban, label: 'Projects' },
-  { href: '/testing-cycles', icon: RotateCcw, label: 'Testing Cycles' },
-  { href: '/bugs', icon: Bug, label: 'Defects' },
+  { href: '/testing-cycles', icon: RotateCcw, label: 'All Testing Cycles' },
+  { href: '/bugs', icon: Bug, label: 'All Bugs' },
 ];
 
 const DEV_NAV = [
   { href: '/developer', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { href: '/developer/projects', icon: FolderKanban, label: 'Projects' },
-  { href: '/developer/cycles', icon: RotateCcw, label: 'Testing Cycles' },
-  { href: '/developer/bugs', icon: Bug, label: 'Assigned Defects' },
+  { href: '/developer/cycles', icon: RotateCcw, label: 'All Testing Cycles' },
+  { href: '/developer/bugs', icon: Bug, label: 'All Bugs' },
 ];
 
 const ADMIN_NAV = [

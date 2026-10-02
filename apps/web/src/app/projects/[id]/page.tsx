@@ -1,7 +1,7 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { projectsApi, bugsApi, usersApi, testingCyclesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
@@ -24,7 +24,173 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Server,
 } from 'lucide-react';
+
+function TablePagination({
+  currentPage,
+  totalPages,
+  pageSize,
+  totalItems,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [5, 10, 20, 50],
+  itemLabel = 'entries',
+}: {
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  pageSizeOptions?: number[];
+  itemLabel?: string;
+}) {
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endItem = Math.min(totalItems, currentPage * pageSize);
+
+  const delta = 1;
+  const range: (number | string)[] = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+      range.push(i);
+    } else if (range[range.length - 1] !== '...') {
+      range.push('...');
+    }
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 16px',
+      background: 'var(--color-surface-2)',
+      borderTop: '1px solid var(--color-border)',
+      borderBottomLeftRadius: 'var(--radius-md)',
+      borderBottomRightRadius: 'var(--radius-md)',
+      flexWrap: 'wrap',
+      gap: '12px',
+      fontSize: '12.5px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+        <span style={{ color: 'var(--color-text-muted)' }}>
+          Showing <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>{startItem}</strong> to <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>{endItem}</strong> of <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>{totalItems}</strong> {itemLabel}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+          <span>Per page:</span>
+          {pageSizeOptions.map((size) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => {
+                onPageSizeChange(size);
+                onPageChange(1);
+              }}
+              style={{
+                padding: '2px 7px',
+                borderRadius: '4px',
+                background: pageSize === size ? '#4f46e5' : '#ffffff',
+                color: pageSize === size ? '#ffffff' : 'var(--color-text)',
+                border: pageSize === size ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                boxShadow: pageSize === size ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                cursor: 'pointer',
+                fontSize: '11.5px',
+                fontWeight: '700',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          style={{
+            height: '30px',
+            padding: '0 10px',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            opacity: currentPage <= 1 ? 0.45 : 1,
+            cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <ChevronLeft size={13} />
+          <span>Prev</span>
+        </button>
+
+        {range.map((page, idx) => {
+          if (page === '...') {
+            return (
+              <span key={`ell-${idx}`} style={{ padding: '0 4px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                ...
+              </span>
+            );
+          }
+          const pageNum = Number(page);
+          const isCurrent = pageNum === currentPage;
+          return (
+            <button
+              key={pageNum}
+              type="button"
+              onClick={() => onPageChange(pageNum)}
+              style={{
+                minWidth: '30px',
+                height: '30px',
+                padding: '0 6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                fontWeight: isCurrent ? '700' : '500',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                border: isCurrent ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                background: isCurrent ? '#4f46e5' : '#ffffff',
+                color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                boxShadow: isCurrent ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+              }}
+            >
+              {pageNum}
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          style={{
+            height: '30px',
+            padding: '0 10px',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            opacity: currentPage >= totalPages ? 0.45 : 1,
+            cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <span>Next</span>
+          <ChevronRight size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function ProjectDetailPage() {
   const router = useRouter();
@@ -63,6 +229,26 @@ export default function ProjectDetailPage() {
   const [reqForm, setReqForm] = useState({ reqCode: '', title: '', description: '', priority: 'HIGH' });
   const [addingReq, setAddingReq] = useState(false);
 
+  // Defects Filtering & Pagination
+  const [defectSearch, setDefectSearch] = useState('');
+  const [defectStatusFilter, setDefectStatusFilter] = useState('ALL');
+  const [defectSeverityFilter, setDefectSeverityFilter] = useState('ALL');
+  const [defectPage, setDefectPage] = useState(1);
+  const [defectPageSize, setDefectPageSize] = useState(10);
+
+  // Testing Cycles Filtering & Pagination
+  const [cycleSearch, setCycleSearch] = useState('');
+  const [cycleStatusFilter, setCycleStatusFilter] = useState('ALL');
+  const [cycleEnvFilter, setCycleEnvFilter] = useState('ALL');
+  const [cyclePage, setCyclePage] = useState(1);
+  const [cyclePageSize, setCyclePageSize] = useState(6);
+
+  // Requirements Filtering & Pagination
+  const [reqSearch, setReqSearch] = useState('');
+  const [reqPriorityFilter, setReqPriorityFilter] = useState('ALL');
+  const [reqPage, setReqPage] = useState(1);
+  const [reqPageSize, setReqPageSize] = useState(10);
+
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -100,7 +286,132 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     loadData();
+    if (typeof window !== 'undefined') {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam && ['overview', 'defects', 'cycles', 'requirements'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
   }, [loadData]);
+
+  // Filtered defects
+  const filteredBugs = useMemo(() => {
+    return bugs.filter((b: any) => {
+      if (defectStatusFilter !== 'ALL' && b.status !== defectStatusFilter) return false;
+      if (defectSeverityFilter !== 'ALL' && b.severity !== defectSeverityFilter) return false;
+      if (defectSearch.trim()) {
+        const q = defectSearch.toLowerCase();
+        const keyMatch = b.issueKey?.toLowerCase().includes(q);
+        const titleMatch = b.title?.toLowerCase().includes(q);
+        const descMatch = b.description?.toLowerCase().includes(q);
+        const assigneeMatch = b.assignedTo?.name?.toLowerCase().includes(q);
+        if (!keyMatch && !titleMatch && !descMatch && !assigneeMatch) return false;
+      }
+      return true;
+    });
+  }, [bugs, defectStatusFilter, defectSeverityFilter, defectSearch]);
+
+  const defectTotalPages = Math.max(1, Math.ceil(filteredBugs.length / defectPageSize));
+  const paginatedBugs = useMemo(() => {
+    const start = (defectPage - 1) * defectPageSize;
+    return filteredBugs.slice(start, start + defectPageSize);
+  }, [filteredBugs, defectPage, defectPageSize]);
+
+  // Filtered cycles
+  const filteredCycles = useMemo(() => {
+    return cycles.filter((c: any) => {
+      if (cycleStatusFilter !== 'ALL' && c.status !== cycleStatusFilter) return false;
+      if (cycleEnvFilter !== 'ALL' && c.environment?.toLowerCase() !== cycleEnvFilter.toLowerCase()) return false;
+      if (cycleSearch.trim()) {
+        const q = cycleSearch.toLowerCase();
+        const nameMatch = c.name?.toLowerCase().includes(q);
+        const scopeMatch = c.scope?.toLowerCase().includes(q);
+        const envMatch = c.environment?.toLowerCase().includes(q);
+        if (!nameMatch && !scopeMatch && !envMatch) return false;
+      }
+      return true;
+    });
+  }, [cycles, cycleStatusFilter, cycleEnvFilter, cycleSearch]);
+
+  const cycleTotalPages = Math.max(1, Math.ceil(filteredCycles.length / cyclePageSize));
+  const paginatedCycles = useMemo(() => {
+    const start = (cyclePage - 1) * cyclePageSize;
+    return filteredCycles.slice(start, start + cyclePageSize);
+  }, [filteredCycles, cyclePage, cyclePageSize]);
+
+  // Filtered requirements
+  const filteredRequirements = useMemo(() => {
+    return requirements.filter((r: any) => {
+      if (reqPriorityFilter !== 'ALL' && r.priority !== reqPriorityFilter) return false;
+      if (reqSearch.trim()) {
+        const q = reqSearch.toLowerCase();
+        const keyMatch = r.reqCode?.toLowerCase().includes(q) || r.reqKey?.toLowerCase().includes(q);
+        const titleMatch = r.title?.toLowerCase().includes(q);
+        const descMatch = r.description?.toLowerCase().includes(q);
+        if (!keyMatch && !titleMatch && !descMatch) return false;
+      }
+      return true;
+    });
+  }, [requirements, reqPriorityFilter, reqSearch]);
+
+  const reqTotalPages = Math.max(1, Math.ceil(filteredRequirements.length / reqPageSize));
+  const paginatedRequirements = useMemo(() => {
+    const start = (reqPage - 1) * reqPageSize;
+    return filteredRequirements.slice(start, start + reqPageSize);
+  }, [filteredRequirements, reqPage, reqPageSize]);
+
+  const getSeverityBadgeStyle = (severity: string) => {
+    const s = (severity || '').toUpperCase();
+    switch (s) {
+      case 'CRITICAL':
+        return { bg: 'rgba(239, 68, 68, 0.12)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.28)' };
+      case 'HIGH':
+        return { bg: 'rgba(249, 115, 22, 0.12)', color: '#ea580c', border: 'rgba(249, 115, 22, 0.28)' };
+      case 'MEDIUM':
+        return { bg: 'rgba(2, 132, 199, 0.12)', color: '#0284c7', border: 'rgba(2, 132, 199, 0.28)' };
+      case 'LOW':
+      default:
+        return { bg: 'rgba(100, 116, 139, 0.12)', color: '#475569', border: 'rgba(100, 116, 139, 0.28)' };
+    }
+  };
+
+  const getStatusBadgeStyle = (status: string) => {
+    const st = (status || '').toUpperCase();
+    switch (st) {
+      case 'CLOSED':
+        return { bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: 'rgba(16, 185, 129, 0.28)' };
+      case 'RESOLVED':
+      case 'VERIFIED':
+        return { bg: 'rgba(14, 165, 233, 0.12)', color: '#0284c7', border: 'rgba(14, 165, 233, 0.28)' };
+      case 'IN_PROGRESS':
+        return { bg: 'rgba(124, 58, 237, 0.12)', color: '#7c3aed', border: 'rgba(124, 58, 237, 0.28)' };
+      case 'NEW':
+        return { bg: 'rgba(59, 130, 246, 0.12)', color: '#2563eb', border: 'rgba(59, 130, 246, 0.28)' };
+      case 'REOPENED':
+        return { bg: 'rgba(239, 68, 68, 0.12)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.28)' };
+      case 'CONFIRMED':
+        return { bg: 'rgba(245, 158, 11, 0.12)', color: '#d97706', border: 'rgba(245, 158, 11, 0.28)' };
+      default:
+        return { bg: 'var(--color-surface-2)', color: 'var(--color-text-muted)', border: 'var(--color-border)' };
+    }
+  };
+
+  const getCycleStatusBadgeStyle = (status: string) => {
+    const st = (status || '').toUpperCase();
+    switch (st) {
+      case 'COMPLETED':
+        return { bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', border: 'rgba(16, 185, 129, 0.28)' };
+      case 'IN_PROGRESS':
+        return { bg: 'rgba(17, 85, 215, 0.12)', color: '#1155d7', border: 'rgba(17, 85, 215, 0.28)' };
+      case 'PLANNED':
+        return { bg: 'rgba(139, 92, 246, 0.12)', color: '#7c3aed', border: 'rgba(139, 92, 246, 0.28)' };
+      case 'ABORTED':
+      case 'CANCELLED':
+        return { bg: 'rgba(239, 68, 68, 0.12)', color: '#dc2626', border: 'rgba(239, 68, 68, 0.28)' };
+      default:
+        return { bg: 'var(--color-surface-2)', color: 'var(--color-text-muted)', border: 'var(--color-border)' };
+    }
+  };
 
   const getUserDefaultRole = (userId: string): string => {
     // 1. Check if user already has a role in this project
@@ -659,11 +970,14 @@ export default function ProjectDetailPage() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>
-                  Project Defects ({bugs.length})
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Project Defects</span>
+                  <span className="badge" style={{ background: 'var(--color-primary-dim)', color: 'var(--color-primary)', fontWeight: '700', fontSize: '11.5px' }}>
+                    {bugs.length}
+                  </span>
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                  All reported defects for {project?.name} with assignee and role visibility.
+                  All reported defects for {project?.name} with assignee, severity, and status visibility.
                 </p>
               </div>
 
@@ -674,89 +988,157 @@ export default function ProjectDetailPage() {
             </div>
 
             {bugs.length === 0 ? (
-              <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                No defects logged for this project yet. Click &quot;Report Defect&quot; to log a bug.
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                <Bug size={32} style={{ color: 'var(--color-text-faint)', margin: '0 auto 10px auto', display: 'block' }} />
+                <p style={{ fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>No defects logged yet</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '340px', margin: '0 auto 14px auto' }}>
+                  Keep track of bugs, regressions, and tasks by reporting defects for this project.
+                </p>
+                <Link href={`/bugs/new?projectId=${projectId}`} className="btn btn-primary btn-sm">
+                  <PlusCircle size={14} />
+                  <span>Report Defect</span>
+                </Link>
               </div>
             ) : (
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
-                      <th style={{ width: '90px' }}>Key</th>
-                      <th>Defect Title</th>
-                      <th style={{ width: '110px' }}>Severity</th>
-                      <th style={{ width: '130px' }}>Status</th>
-                      <th>Assignee & Project Role</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bugs.map((b: any, index: number) => {
-                      const assigneeMember = project?.members?.find((m: any) => m.userId === b.assignedToId);
-                      const assigneeRole = assigneeMember ? getRoleBadge(assigneeMember.projectRole) : null;
-                      return (
-                        <tr key={b.id}>
-                          <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                            {index + 1}
-                          </td>
-                          <td>
-                            <Link href={`/bugs/${b.id}`} style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
-                              <code>{b.issueKey}</code>
-                            </Link>
-                          </td>
-                          <td>
-                            <Link href={`/bugs/${b.id}`} style={{ color: 'var(--color-text)', fontWeight: '500' }}>
-                              {b.title}
-                            </Link>
-                          </td>
-                          <td>
-                            <span className="badge badge-low">{b.severity}</span>
-                          </td>
-                          <td>
-                            <span className="badge badge-status-fixed">{b.status}</span>
-                          </td>
-                          <td>
-                            {b.assignedTo ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '12.5px', fontWeight: '500' }}>{b.assignedTo.name}</span>
-                                {assigneeRole && (
-                                  <span
-                                    className="badge"
-                                    style={{
-                                      background: assigneeRole.bg,
-                                      color: assigneeRole.color,
-                                      border: `1px solid ${assigneeRole.border}`,
-                                      fontSize: '10.5px',
-                                      padding: '1px 6px',
-                                      fontWeight: '600',
-                                    }}
-                                  >
-                                    {assigneeRole.label}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span style={{ fontSize: '12px', color: 'var(--color-text-faint)' }}>Unassigned</span>
-                            )}
-                          </td>
+              <>
+                {filteredBugs.length === 0 ? (
+                  <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                    <p style={{ fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>No defects matched your filter</p>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+                      Try adjusting your keyword or filters to find what you&apos;re looking for.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setDefectSearch('');
+                        setDefectStatusFilter('ALL');
+                        setDefectSeverityFilter('ALL');
+                        setDefectPage(1);
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className="table-wrapper" style={{ overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                    <table className="table" style={{ margin: 0 }}>
+                      <thead>
+                        <tr>
+                          <th style={{ width: '55px', textAlign: 'center' }}>S.NO</th>
+                          <th style={{ width: '95px' }}>KEY</th>
+                          <th>DEFECT TITLE</th>
+                          <th style={{ width: '110px' }}>SEVERITY</th>
+                          <th style={{ width: '130px' }}>STATUS</th>
+                          <th>ASSIGNEE & PROJECT ROLE</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div style={{
-                  padding: '10px 16px',
-                  borderTop: '1px solid var(--color-border)',
-                  background: 'var(--color-surface-2)',
-                  fontSize: '12px',
-                  color: 'var(--color-text-muted)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <span>Showing <strong style={{ color: 'var(--color-text)' }}>{bugs.length}</strong> {bugs.length === 1 ? 'defect entry' : 'defect entries'}</span>
-                </div>
-              </div>
+                      </thead>
+                      <tbody>
+                        {paginatedBugs.map((b: any, index: number) => {
+                          const assigneeMember = project?.members?.find((m: any) => m.userId === b.assignedToId);
+                          const assigneeRole = assigneeMember ? getRoleBadge(assigneeMember.projectRole) : null;
+                          const sevStyle = getSeverityBadgeStyle(b.severity);
+                          const stStyle = getStatusBadgeStyle(b.status);
+                          const sNo = (defectPage - 1) * defectPageSize + index + 1;
+                          return (
+                            <tr key={b.id} style={{ transition: 'background-color 0.15s ease' }}>
+                              <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                                {sNo}
+                              </td>
+                              <td>
+                                <Link href={`/bugs/${b.id}`} style={{ fontWeight: '700', textDecoration: 'none' }}>
+                                  <code style={{ fontSize: '12px', padding: '2px 7px', background: 'var(--color-primary-dim)', borderRadius: '4px', border: '1px solid var(--color-primary-border)', color: 'var(--color-primary)', fontWeight: '700' }}>
+                                    {b.issueKey}
+                                  </code>
+                                </Link>
+                              </td>
+                              <td>
+                                <Link
+                                  href={`/bugs/${b.id}`}
+                                  style={{ color: 'var(--color-text)', fontWeight: '600', fontSize: '13px', textDecoration: 'none' }}
+                                  className="hover:underline"
+                                >
+                                  {b.title}
+                                </Link>
+                              </td>
+                              <td>
+                                <span
+                                  className="badge"
+                                  style={{
+                                    background: sevStyle.bg,
+                                    color: sevStyle.color,
+                                    border: `1px solid ${sevStyle.border}`,
+                                    fontWeight: '700',
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    letterSpacing: '0.02em',
+                                  }}
+                                >
+                                  {b.severity}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className="badge"
+                                  style={{
+                                    background: stStyle.bg,
+                                    color: stStyle.color,
+                                    border: `1px solid ${stStyle.border}`,
+                                    fontWeight: '700',
+                                    fontSize: '11px',
+                                    padding: '2px 8px',
+                                    letterSpacing: '0.02em',
+                                  }}
+                                >
+                                  {b.status}
+                                </span>
+                              </td>
+                              <td>
+                                {b.assignedTo ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div className="avatar" style={{ width: '22px', height: '22px', fontSize: '10px' }}>
+                                      {b.assignedTo.name?.slice(0, 2).toUpperCase() || 'U'}
+                                    </div>
+                                    <span style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--color-text)' }}>{b.assignedTo.name}</span>
+                                    {assigneeRole && (
+                                      <span
+                                        className="badge"
+                                        style={{
+                                          background: assigneeRole.bg,
+                                          color: assigneeRole.color,
+                                          border: `1px solid ${assigneeRole.border}`,
+                                          fontSize: '10.5px',
+                                          padding: '1px 6px',
+                                          fontWeight: '600',
+                                        }}
+                                      >
+                                        {assigneeRole.label}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: '12px', color: 'var(--color-text-faint)', fontStyle: 'italic' }}>Unassigned</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+
+                    <TablePagination
+                      currentPage={defectPage}
+                      totalPages={defectTotalPages}
+                      pageSize={defectPageSize}
+                      totalItems={filteredBugs.length}
+                      onPageChange={setDefectPage}
+                      onPageSizeChange={setDefectPageSize}
+                      pageSizeOptions={[5, 10, 20, 50]}
+                      itemLabel="defects"
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -766,11 +1148,14 @@ export default function ProjectDetailPage() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>
-                  Active & Planned Testing Cycles
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Active & Planned Testing Cycles</span>
+                  <span className="badge" style={{ background: 'var(--color-primary-dim)', color: 'var(--color-primary)', fontWeight: '700', fontSize: '11.5px' }}>
+                    {cycles.length}
+                  </span>
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                  Cycles scoped to {project?.name} for test execution and bug regression.
+                  Cycles scoped to {project?.name} for test execution, regression runs, and QA validation.
                 </p>
               </div>
 
@@ -781,55 +1166,157 @@ export default function ProjectDetailPage() {
             </div>
 
             {cycles.length === 0 ? (
-              <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                No testing cycles created for this project yet.
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                <RotateCcw size={32} style={{ color: 'var(--color-text-faint)', margin: '0 auto 10px auto', display: 'block' }} />
+                <p style={{ fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>No testing cycles created yet</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '340px', margin: '0 auto 14px auto' }}>
+                  Create test cycles to scope executions, link test cases, and verify requirements.
+                </p>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowAddCycle(true)}>
+                  <PlusCircle size={14} />
+                  <span>+ Plan Cycle</span>
+                </button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-                {cycles.map((c) => (
-                  <div key={c.id} className="card-subtle" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span className="badge badge-status-in_progress" style={{ fontSize: '10px' }}>
-                          {c.status}
-                        </span>
-                        <span className="badge" style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', fontSize: '10px' }}>
-                          {c.environment}
-                        </span>
-                      </div>
-                      <Link
-                        href={`/testing-cycles/${c.id}`}
-                        style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', textDecoration: 'none' }}
-                      >
-                        {c.name}
-                      </Link>
-                      {c.scope && (
-                        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
-                          {c.scope}
-                        </p>
-                      )}
+              <>
+                {/* Search & Filter Toolbar */}
+
+
+                {filteredCycles.length === 0 ? (
+                  <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                    <p style={{ fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>No testing cycles matched your filter</p>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
+                      Try adjusting your keyword or environment filter to find testing cycles.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setCycleSearch('');
+                        setCycleStatusFilter('ALL');
+                        setCycleEnvFilter('ALL');
+                        setCyclePage(1);
+                      }}
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+                      {paginatedCycles.map((c) => {
+                        const statusBadge = getCycleStatusBadgeStyle(c.status);
+                        return (
+                          <div
+                            key={c.id}
+                            className="card-subtle"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              gap: '12px',
+                              padding: '16px',
+                              borderRadius: 'var(--radius-md)',
+                              background: 'var(--color-surface)',
+                              border: '1px solid var(--color-border)',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <span
+                                  className="badge"
+                                  style={{
+                                    background: statusBadge.bg,
+                                    color: statusBadge.color,
+                                    border: `1px solid ${statusBadge.border}`,
+                                    fontWeight: '700',
+                                    fontSize: '10.5px',
+                                    padding: '2px 7px',
+                                    letterSpacing: '0.02em',
+                                  }}
+                                >
+                                  {c.status}
+                                </span>
+                                <span
+                                  className="badge"
+                                  style={{
+                                    background: 'var(--color-surface-2)',
+                                    color: 'var(--color-text-secondary)',
+                                    border: '1px solid var(--color-border)',
+                                    fontSize: '10.5px',
+                                    fontWeight: '600',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <Server size={10} style={{ color: 'var(--color-primary)' }} />
+                                  {c.environment || 'Staging'}
+                                </span>
+                              </div>
+                              <Link
+                                href={`/testing-cycles/${c.id}`}
+                                style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', textDecoration: 'none', display: 'block', lineHeight: 1.35 }}
+                                className="hover:underline"
+                              >
+                                {c.name}
+                              </Link>
+                              {c.scope && (
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '5px', lineHeight: 1.4 }}>
+                                  {c.scope}
+                                </p>
+                              )}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--color-border)' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>
+                                {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : 'Active Cycle'}
+                              </span>
+                              <Link
+                                href={`/testing-cycles/${c.id}`}
+                                className="btn btn-ghost btn-sm"
+                                style={{ color: 'var(--color-primary)', fontSize: '12px', fontWeight: '600', gap: '4px', padding: '3px 8px' }}
+                              >
+                                <span>Open Console</span>
+                                <ArrowRight size={12} />
+                              </Link>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
-                      <Link href={`/testing-cycles/${c.id}`} className="btn btn-ghost btn-sm" style={{ color: 'var(--color-primary)', fontSize: '11.5px', fontWeight: '600', gap: '4px' }}>
-                        <span>Open Console</span>
-                        <ArrowRight size={12} />
-                      </Link>
+                    <div style={{ marginTop: '16px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                      <TablePagination
+                        currentPage={cyclePage}
+                        totalPages={cycleTotalPages}
+                        pageSize={cyclePageSize}
+                        totalItems={filteredCycles.length}
+                        onPageChange={setCyclePage}
+                        onPageSizeChange={setCyclePageSize}
+                        pageSizeOptions={[6, 12, 24]}
+                        itemLabel="cycles"
+                      />
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {/* TAB 3: REQUIREMENTS */}
+        {/* TAB 4: REQUIREMENTS */}
         {activeTab === 'requirements' && (
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '14.5px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>
-                  Project Requirements & User Stories
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Project Requirements & User Stories</span>
+                  <span className="badge" style={{ background: 'var(--color-primary-dim)', color: 'var(--color-primary)', fontWeight: '700', fontSize: '11.5px' }}>
+                    {requirements.length}
+                  </span>
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                   Traceable features and technical criteria verified by test scenarios.
@@ -842,61 +1329,155 @@ export default function ProjectDetailPage() {
               </button>
             </div>
 
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
-                    <th>Req Key</th>
-                    <th>Title & Description</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Linked Defects</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requirements.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--color-text-muted)' }}>
-                        No requirements defined yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    requirements.map((r, index) => (
-                      <tr key={r.id}>
-                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                          {index + 1}
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: '700', color: 'var(--color-accent)' }}>
-                            {r.reqKey || '—'}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{r.title}</strong>
-                          {r.description && (
-                            <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{r.description}</div>
-                          )}
-                        </td>
-                        <td>
-                          <span className="badge badge-low">
-                            {r.priority}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge badge-status-fixed">
-                            {r.status}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '12px' }}>
-                          <strong>{r.bugs?.length || 0}</strong> defects
-                        </td>
+            {requirements.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                <FileText size={32} style={{ color: 'var(--color-text-faint)', margin: '0 auto 10px auto', display: 'block' }} />
+                <p style={{ fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>No requirements defined yet</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '340px', margin: '0 auto 14px auto' }}>
+                  Define user stories and specs to link test cases and track requirements coverage.
+                </p>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowAddReq(true)}>
+                  <PlusCircle size={14} />
+                  <span>+ Add Requirement</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap',
+                  background: 'var(--color-surface-2)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--color-border)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '1 1 300px', flexWrap: 'wrap' }}>
+                    <div style={{ position: 'relative', flex: '1 1 200px', minWidth: '180px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)', pointerEvents: 'none' }} />
+                      <input
+                        type="text"
+                        placeholder="Search requirements by key, title, desc..."
+                        value={reqSearch}
+                        onChange={(e) => { setReqSearch(e.target.value); setReqPage(1); }}
+                        className="input input-sm"
+                        style={{ paddingLeft: '32px', paddingRight: reqSearch ? '28px' : '10px', width: '100%', height: '34px', fontSize: '12.5px', background: 'var(--color-surface)' }}
+                      />
+                      {reqSearch && (
+                        <button
+                          onClick={() => { setReqSearch(''); setReqPage(1); }}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}
+                          title="Clear search"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    <select
+                      className="select select-sm"
+                      value={reqPriorityFilter}
+                      onChange={(e) => { setReqPriorityFilter(e.target.value); setReqPage(1); }}
+                      style={{ height: '34px', fontSize: '12.5px', minWidth: '130px', background: 'var(--color-surface)' }}
+                    >
+                      <option value="ALL">All Priorities</option>
+                      <option value="CRITICAL">CRITICAL</option>
+                      <option value="HIGH">HIGH</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="LOW">LOW</option>
+                    </select>
+
+                    {(reqSearch || reqPriorityFilter !== 'ALL') && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => {
+                          setReqSearch('');
+                          setReqPriorityFilter('ALL');
+                          setReqPage(1);
+                        }}
+                        style={{ fontSize: '12px', height: '34px', color: 'var(--color-primary)', fontWeight: '600' }}
+                      >
+                        Reset Filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="table-wrapper" style={{ overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                  <table className="table" style={{ margin: 0 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '55px', textAlign: 'center' }}>S.NO</th>
+                        <th style={{ width: '100px' }}>REQ KEY</th>
+                        <th>TITLE & DESCRIPTION</th>
+                        <th style={{ width: '110px' }}>PRIORITY</th>
+                        <th style={{ width: '120px' }}>STATUS</th>
+                        <th style={{ width: '130px' }}>LINKED DEFECTS</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {paginatedRequirements.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--color-text-muted)' }}>
+                            No requirements match your filter criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedRequirements.map((r, index) => {
+                          const sNo = (reqPage - 1) * reqPageSize + index + 1;
+                          return (
+                            <tr key={r.id}>
+                              <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                                {sNo}
+                              </td>
+                              <td>
+                                <span style={{ fontWeight: '700', color: 'var(--color-accent)', fontFamily: 'monospace', fontSize: '12px' }}>
+                                  {r.reqCode || r.reqKey || '—'}
+                                </span>
+                              </td>
+                              <td>
+                                <strong style={{ color: 'var(--color-text)', fontSize: '13px' }}>{r.title}</strong>
+                                {r.description && (
+                                  <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.4 }}>{r.description}</div>
+                                )}
+                              </td>
+                              <td>
+                                <span className="badge badge-low" style={{ fontSize: '10.5px' }}>
+                                  {r.priority}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="badge badge-status-fixed" style={{ fontSize: '10.5px' }}>
+                                  {r.status}
+                                </span>
+                              </td>
+                              <td style={{ fontSize: '12px' }}>
+                                <strong>{r.bugs?.length || 0}</strong> defects
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+
+                  <TablePagination
+                    currentPage={reqPage}
+                    totalPages={reqTotalPages}
+                    pageSize={reqPageSize}
+                    totalItems={filteredRequirements.length}
+                    onPageChange={setReqPage}
+                    onPageSizeChange={setReqPageSize}
+                    pageSizeOptions={[5, 10, 20]}
+                    itemLabel="requirements"
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 

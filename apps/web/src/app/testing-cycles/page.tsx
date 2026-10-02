@@ -1,7 +1,7 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { testingCyclesApi, projectsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
@@ -21,7 +21,7 @@ import {
   X,
   Target,
   LayoutGrid,
-  Table as TableIcon,
+  List,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -169,6 +169,19 @@ export default function TestingCyclesPage() {
   const totalPages = Math.max(1, Math.ceil(filteredCycles.length / pageSize));
   const paginatedCycles = filteredCycles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const paginationRange = useMemo(() => {
+    const delta = 2;
+    const range: (number | string)[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      } else if (range[range.length - 1] !== '...') {
+        range.push('...');
+      }
+    }
+    return range;
+  }, [currentPage, totalPages]);
+
   const totalTests = cycles.reduce((acc, c) => acc + (c.metrics?.totalTests || 0), 0);
   const totalPassed = cycles.reduce((acc, c) => acc + (c.metrics?.passed || 0), 0);
   const overallPassRate = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
@@ -310,117 +323,94 @@ export default function TestingCyclesPage() {
 
             {/* View Toggle: Grid (Default) vs Table */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              borderRadius: '8px',
+              display: 'inline-flex',
+              background: '#f1f5f9',
               padding: '2px',
+              borderRadius: '7px',
               gap: '2px',
+              border: '1px solid var(--color-border)',
             }}>
               <button
                 type="button"
+                title="Card Grid View"
                 onClick={() => setViewMode('grid')}
-                className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '4px 9px', height: '30px', fontSize: '11.5px', gap: '4px' }}
-                title="Grid View (Default)"
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
               >
-                <LayoutGrid size={13} />
-                <span>Grid</span>
+                <LayoutGrid size={14} />
               </button>
               <button
                 type="button"
+                title="Compact Table View"
                 onClick={() => setViewMode('table')}
-                className={`btn btn-sm ${viewMode === 'table' ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ padding: '4px 9px', height: '30px', fontSize: '11.5px', gap: '4px' }}
-                title="Table View"
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
               >
-                <TableIcon size={13} />
-                <span>Table</span>
+                <List size={14} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Table Top Controls: Shown Entries & Show Entries Selector */}
+        {/* Results Summary Count & Per Page Size Selector */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
           alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
           flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '14px',
-          padding: '10px 16px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-xs)',
+          gap: '10px',
         }}>
-          {/* Shown Entries Counter */}
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>
-              Showing{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {filteredCycles.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
-              </strong>
-              {' '}to{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {Math.min(currentPage * pageSize, filteredCycles.length)}
-              </strong>
-              {' '}of{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {filteredCycles.length}
-              </strong>
-              {' '}entries
-            </span>
+          <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
+            Showing {filteredCycles.length === 0 ? '0' : (currentPage - 1) * pageSize + 1}–
+            {Math.min(currentPage * pageSize, filteredCycles.length)} of {filteredCycles.length} {filteredCycles.length === 1 ? 'cycle' : 'cycles'}
+            {(statusFilter !== 'ALL' || selectedProjectId || searchQuery.trim()) && ` (filtered from ${cycles.length} total)`}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            {/* Show Entries Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-              <span>Show entries:</span>
-              <select
-                className="select"
-                style={{ padding: '4px 28px 4px 10px', fontSize: '12.5px', height: '32px', width: 'auto' }}
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+            <span>Per page:</span>
+            {[10, 20, 50, 100].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => {
+                  setPageSize(size);
                   setCurrentPage(1);
                 }}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: pageSize === size ? '#4f46e5' : '#ffffff',
+                  color: pageSize === size ? '#ffffff' : 'var(--color-text)',
+                  border: pageSize === size ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                  boxShadow: pageSize === size ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                  transition: 'all 0.15s ease',
+                }}
               >
-                <option value={6}>6</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            {/* Pagination Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                style={{ padding: '4px 10px', height: '32px' }}
-              >
-                <ChevronLeft size={14} />
-                <span>Prev</span>
+                {size}
               </button>
-              <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 6px', fontWeight: '500' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                style={{ padding: '4px 10px', height: '32px' }}
-              >
-                <span>Next</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -454,8 +444,8 @@ export default function TestingCyclesPage() {
 
               const statusBadgeClass =
                 c.status === 'IN_PROGRESS' ? 'badge-status-in_progress' :
-                c.status === 'COMPLETED' ? 'badge-status-fixed' :
-                c.status === 'BLOCKED' ? 'badge-critical' : 'badge-status-new';
+                  c.status === 'COMPLETED' ? 'badge-status-fixed' :
+                    c.status === 'BLOCKED' ? 'badge-critical' : 'badge-status-new';
 
               return (
                 <div
@@ -604,8 +594,8 @@ export default function TestingCyclesPage() {
 
                   const statusBadgeClass =
                     c.status === 'IN_PROGRESS' ? 'badge-status-in_progress' :
-                    c.status === 'COMPLETED' ? 'badge-status-fixed' :
-                    c.status === 'BLOCKED' ? 'badge-critical' : 'badge-status-new';
+                      c.status === 'COMPLETED' ? 'badge-status-fixed' :
+                        c.status === 'BLOCKED' ? 'badge-critical' : 'badge-status-new';
 
                   return (
                     <tr key={c.id}>
@@ -721,6 +711,103 @@ export default function TestingCyclesPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Scalable Full Pagination Footer */}
+        {filteredCycles.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '22px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--color-border)',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+              Page {currentPage} of {totalPages} ({filteredCycles.length} total {filteredCycles.length === 1 ? 'cycle' : 'cycles'})
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev</span>
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {paginationRange.map((page, idx) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${idx}`} style={{ padding: '0 6px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        ...
+                      </span>
+                    );
+                  }
+                  const pageNum = Number(page);
+                  const isCurrent = pageNum === currentPage;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNum)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: isCurrent ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                        background: isCurrent ? '#4f46e5' : '#ffffff',
+                        color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: isCurrent ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
         )}
 

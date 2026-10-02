@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ChevronLeft,
   ArrowLeft,
+  ArrowRight,
   Search,
   PlayCircle,
   CheckCircle2,
@@ -26,6 +27,10 @@ import {
   Clock,
   X,
   SlidersHorizontal,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Check,
 } from 'lucide-react';
 
 interface BugItem {
@@ -52,12 +57,13 @@ export default function DeveloperAllBugsPage() {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [assignedBugs, setAssignedBugs] = useState<BugItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [workflowTab, setWorkflowTab] = useState<'ALL' | 'NEEDS_ACTION' | 'IN_PROGRESS' | 'FIXED' | 'CRITICAL'>('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'NEEDS_ACTION' | 'IN_PROGRESS' | 'FIXED' | 'CRITICAL'>('ALL');
+  const [projectFilter, setProjectFilter] = useState('ALL');
+  const [cycleFilter, setCycleFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
-  const [areaFilter, setAreaFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -91,12 +97,50 @@ export default function DeveloperAllBugsPage() {
       console.error('Failed to load assigned bugs', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [user]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+  };
+
+  const availableProjects = useMemo(() => {
+    const map = new Map<string, { id: string; key: string; name: string }>();
+    assignedBugs.forEach((b) => {
+      if (b.project?.id) {
+        map.set(b.project.id, b.project);
+      }
+    });
+    return Array.from(map.values());
+  }, [assignedBugs]);
+
+  const availableCycles = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; cycleNumber?: number }>();
+    assignedBugs.forEach((b) => {
+      if (b.testingCycle?.id) {
+        if (projectFilter === 'ALL' || b.projectId === projectFilter || b.project?.id === projectFilter) {
+          map.set(b.testingCycle.id, {
+            id: b.testingCycle.id,
+            name: b.testingCycle.name,
+            cycleNumber: b.testingCycle.cycleNumber,
+          });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [assignedBugs, projectFilter]);
+
+  const handleProjectChange = (newProj: string) => {
+    setProjectFilter(newProj);
+    setCycleFilter('ALL');
+    setCurrentPage(1);
+  };
 
   const counts = useMemo(() => {
     return {
@@ -110,16 +154,20 @@ export default function DeveloperAllBugsPage() {
 
   const displayedBugs = useMemo(() => {
     return assignedBugs.filter((bug) => {
-      // Workflow Tab
-      if (workflowTab === 'NEEDS_ACTION' && !['NEW', 'ASSIGNED', 'REOPENED'].includes(bug.status)) return false;
-      if (workflowTab === 'IN_PROGRESS' && bug.status !== 'IN_PROGRESS') return false;
-      if (workflowTab === 'FIXED' && !['FIXED', 'RETEST', 'CLOSED'].includes(bug.status)) return false;
-      if (workflowTab === 'CRITICAL' && bug.priority !== 'P1' && bug.severity !== 'CRITICAL') return false;
+      // Status Filter
+      if (statusFilter === 'NEEDS_ACTION' && !['NEW', 'ASSIGNED', 'REOPENED'].includes(bug.status)) return false;
+      if (statusFilter === 'IN_PROGRESS' && bug.status !== 'IN_PROGRESS') return false;
+      if (statusFilter === 'FIXED' && !['FIXED', 'RETEST', 'CLOSED'].includes(bug.status)) return false;
+      if (statusFilter === 'CRITICAL' && bug.priority !== 'P1' && bug.severity !== 'CRITICAL') return false;
 
-      // Dropdown Filters
-      if (statusFilter !== 'ALL' && bug.status !== statusFilter) return false;
+      // Project Filter
+      if (projectFilter !== 'ALL' && bug.projectId !== projectFilter && bug.project?.id !== projectFilter) return false;
+
+      // Cycle Filter
+      if (cycleFilter !== 'ALL' && bug.testingCycleId !== cycleFilter && bug.testingCycle?.id !== cycleFilter) return false;
+
+      // Priority Filter
       if (priorityFilter !== 'ALL' && bug.priority !== priorityFilter) return false;
-      if (areaFilter !== 'ALL' && bug.bugArea !== areaFilter) return false;
 
       // Search Query
       if (searchQuery.trim()) {
@@ -127,18 +175,58 @@ export default function DeveloperAllBugsPage() {
         const mKey = bug.issueKey?.toLowerCase().includes(q);
         const mTitle = bug.title?.toLowerCase().includes(q);
         const mArea = bug.bugArea?.toLowerCase().includes(q);
-        const mProj = bug.project?.name?.toLowerCase().includes(q);
-        if (!mKey && !mTitle && !mArea && !mProj) return false;
+        const mProj = bug.project?.name?.toLowerCase().includes(q) || bug.project?.key?.toLowerCase().includes(q);
+        const mCycle = bug.testingCycle?.name?.toLowerCase().includes(q);
+        if (!mKey && !mTitle && !mArea && !mProj && !mCycle) return false;
       }
       return true;
     });
-  }, [assignedBugs, workflowTab, statusFilter, priorityFilter, areaFilter, searchQuery]);
+  }, [assignedBugs, statusFilter, projectFilter, cycleFilter, priorityFilter, searchQuery]);
+
+  const hasActiveFilters = statusFilter !== 'ALL' || projectFilter !== 'ALL' || cycleFilter !== 'ALL' || priorityFilter !== 'ALL' || !!searchQuery.trim();
+
+  const resetFilters = () => {
+    setStatusFilter('ALL');
+    setProjectFilter('ALL');
+    setCycleFilter('ALL');
+    setPriorityFilter('ALL');
+    setSearchQuery('');
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.max(1, Math.ceil(displayedBugs.length / pageSize));
   const paginatedBugs = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return displayedBugs.slice(start, start + pageSize);
   }, [displayedBugs, currentPage, pageSize]);
+
+  const paginationRange = useMemo(() => {
+    const delta = 2;
+    const range: (number | string)[] = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+        range.push(i);
+      } else if (range[range.length - 1] !== '...') {
+        range.push('...');
+      }
+    }
+    return range;
+  }, [currentPage, totalPages]);
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'P1':
+        return { bg: '#fee2e2', border: '#fca5a5', text: '#b91c1c', label: 'P1 Critical' };
+      case 'P2':
+        return { bg: '#ffedd5', border: '#fdba74', text: '#c2410c', label: 'P2 High' };
+      case 'P3':
+        return { bg: '#fef3c7', border: '#fde047', text: '#b45309', label: 'P3 Medium' };
+      case 'P4':
+        return { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569', label: 'P4 Low' };
+      default:
+        return { bg: '#f1f5f9', border: '#cbd5e1', text: '#475569', label: priority };
+    }
+  };
 
   const handleDirectTransition = async (bug: BugItem, nextStatus: string) => {
     setTransitioningBugId(bug.id);
@@ -286,43 +374,43 @@ export default function DeveloperAllBugsPage() {
             <span>Developer Console</span>
           </Link>
           <ChevronRight size={14} />
-          <span style={{ fontWeight: '600', color: 'var(--color-text)' }}>Assigned Defects</span>
+          <span style={{ fontWeight: '600', color: 'var(--color-text)' }}>All Bugs</span>
         </div>
 
-        {/* Header Banner & Executive KPI Metrics */}
+        {/* Header Banner - Clean, Compact & Developer Focused */}
         <div style={{
           background: '#ffffff',
-          borderRadius: '16px',
-          padding: '20px 24px',
+          borderRadius: '14px',
+          padding: '16px 22px',
           border: '1px solid var(--color-border)',
-          boxShadow: 'var(--shadow-card)',
-          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          marginBottom: '16px',
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '16px',
+          gap: '12px',
         }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: '800', margin: '0 0 6px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ fontSize: '20px', fontWeight: '800', margin: '0 0 4px', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: '#fee2e2',
                 color: '#dc2626',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <Bug size={19} />
+                <Bug size={18} />
               </span>
-              <span>All Assigned Defects</span>
+              <span>All Bugs</span>
               <span style={{
-                fontSize: '11.5px',
-                fontWeight: '700',
-                padding: '2px 9px',
-                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: '800',
+                padding: '2px 8px',
+                borderRadius: '10px',
                 background: '#eff6ff',
                 color: '#2563eb',
                 border: '1px solid #bfdbfe',
@@ -330,317 +418,328 @@ export default function DeveloperAllBugsPage() {
                 {assignedBugs.length} Total
               </span>
             </h1>
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
-              All defect tasks assigned to you. Update progress and mark issues fixed directly from this workbench.
+            <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', margin: 0 }}>
+              All bugs across your assigned projects. Inspect issues, update progress, and mark resolved.
             </p>
           </div>
-
-          {/* Quick KPI Stat Chips */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid var(--color-border)',
-              borderRadius: '10px',
-              padding: '8px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }} />
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>Needs Action</div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text)' }}>{counts.needsAction}</div>
-              </div>
-            </div>
-
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid var(--color-border)',
-              borderRadius: '10px',
-              padding: '8px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8b5cf6' }} />
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>In Progress</div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#7c3aed' }}>{counts.inProgress}</div>
-              </div>
-            </div>
-
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid var(--color-border)',
-              borderRadius: '10px',
-              padding: '8px 14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-            }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-              <div>
-                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>Fixed / Retest</div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#059669' }}>{counts.fixed}</div>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Workflow Quick Filter Tabs */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-          {[
-            { id: 'ALL', label: 'All Assigned', count: counts.all },
-            { id: 'NEEDS_ACTION', label: 'Needs Action', count: counts.needsAction },
-            { id: 'IN_PROGRESS', label: 'In Progress', count: counts.inProgress },
-            { id: 'FIXED', label: 'Fixed / Retest', count: counts.fixed },
-            { id: 'CRITICAL', label: 'Critical P1', count: counts.critical },
-          ].map((tab) => {
-            const isActive = workflowTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setWorkflowTab(tab.id as any);
-                  setCurrentPage(1);
-                }}
-                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                style={{
-                  fontSize: '12px',
-                  fontWeight: isActive ? '700' : '600',
-                  borderRadius: 'var(--radius-full)',
-                  padding: '5px 14px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <span>{tab.label}</span>
-                <span style={{
-                  fontSize: '10.5px',
-                  padding: '1px 6px',
-                  borderRadius: '10px',
-                  background: isActive ? 'rgba(255,255,255,0.25)' : 'var(--color-surface-2)',
-                  color: isActive ? '#ffffff' : 'var(--color-text-muted)',
-                }}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Unified Filter Toolbar */}
+        {/* STREAMLINED FILTERS TOOLBAR: Search, Project, Cycle, Status & Priority */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '10px',
+          marginBottom: '16px',
           flexWrap: 'wrap',
-          marginBottom: '12px',
-          padding: '12px 16px',
           background: '#ffffff',
           border: '1px solid var(--color-border)',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-xs)',
+          borderRadius: '10px',
+          padding: '8px 12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}>
-          <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '280px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)' }} />
+          {/* Left: Search input */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#f8fafc',
+            border: '1px solid var(--color-border)',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            gap: '8px',
+            flex: '1 1 200px',
+            maxWidth: '300px',
+          }}>
+            <Search size={14} style={{ color: 'var(--color-text-muted)' }} />
             <input
               type="text"
+              placeholder="Search defects by key, title, cycle..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search key, title, area..."
-              className="input"
-              style={{ paddingLeft: '32px', height: '34px', fontSize: '12.5px', borderRadius: '8px', width: '100%' }}
-            />
-          </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select"
-            style={{ width: '150px', height: '34px', fontSize: '12.5px', padding: '4px 26px 4px 10px' }}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ASSIGNED">Assigned</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="FIXED">Fixed</option>
-            <option value="CANNOT_REPRODUCE">Cannot Reproduce</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-
-          <select
-            value={priorityFilter}
-            onChange={(e) => {
-              setPriorityFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select"
-            style={{ width: '140px', height: '34px', fontSize: '12.5px', padding: '4px 26px 4px 10px' }}
-          >
-            <option value="ALL">All Priorities</option>
-            <option value="P1">P1 - Critical</option>
-            <option value="P2">P2 - High</option>
-            <option value="P3">P3 - Medium</option>
-            <option value="P4">P4 - Low</option>
-          </select>
-
-          <select
-            value={areaFilter}
-            onChange={(e) => {
-              setAreaFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select"
-            style={{ width: '140px', height: '34px', fontSize: '12.5px', padding: '4px 26px 4px 10px' }}
-          >
-            <option value="ALL">All Bug Areas</option>
-            <option value="FRONTEND">Frontend</option>
-            <option value="BACKEND">Backend</option>
-          </select>
-
-          {(searchQuery || statusFilter !== 'ALL' || priorityFilter !== 'ALL' || areaFilter !== 'ALL' || workflowTab !== 'ALL') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setStatusFilter('ALL');
-                setPriorityFilter('ALL');
-                setAreaFilter('ALL');
-                setWorkflowTab('ALL');
-                setCurrentPage(1);
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: '12.5px',
+                background: 'transparent',
+                color: 'var(--color-text)',
+                width: '100%',
               }}
-              className="btn btn-ghost btn-sm"
-              style={{ color: 'var(--color-danger)', gap: '4px', height: '34px', fontSize: '12px' }}
-            >
-              <X size={13} />
-              <span>Reset</span>
-            </button>
-          )}
-        </div>
-
-        {/* Table Top Controls: Shown Entries & Show Entries Selector */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '12px',
-          padding: '10px 16px',
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: '12px',
-          boxShadow: 'var(--shadow-xs)',
-        }}>
-          {/* Shown Entries Counter */}
-          <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>
-              Showing{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {displayedBugs.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
-              </strong>
-              {' '}to{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {Math.min(currentPage * pageSize, displayedBugs.length)}
-              </strong>
-              {' '}of{' '}
-              <strong style={{ color: 'var(--color-text)', fontWeight: '700' }}>
-                {displayedBugs.length}
-              </strong>
-              {' '}entries
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            {/* Show Entries Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-              <span>Show entries:</span>
-              <select
-                className="select"
-                style={{ padding: '4px 28px 4px 10px', fontSize: '12.5px', height: '32px', width: 'auto' }}
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
                   setCurrentPage(1);
                 }}
+                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
+                <X size={13} />
+              </button>
+            )}
+          </div>
 
-            {/* Pagination Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                style={{ padding: '4px 10px', height: '32px' }}
-              >
-                <ChevronLeft size={14} />
-                <span>Prev</span>
-              </button>
-              <span style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', padding: '0 6px', fontWeight: '500' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                style={{ padding: '4px 10px', height: '32px' }}
-              >
-                <span>Next</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
+          {/* Right: Dropdowns & Refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Project Filter */}
+            <select
+              value={projectFilter}
+              onChange={(e) => handleProjectChange(e.target.value)}
+              style={{
+                height: '32px',
+                fontSize: '12px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                background: '#ffffff',
+                fontWeight: '600',
+                color: 'var(--color-text)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="ALL">All Projects ({availableProjects.length})</option>
+              {availableProjects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.key} — {p.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Related Cycles Filter (Dynamically updates based on selected project) */}
+            <select
+              value={cycleFilter}
+              onChange={(e) => {
+                setCycleFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{
+                height: '32px',
+                fontSize: '12px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                background: '#ffffff',
+                fontWeight: '600',
+                color: 'var(--color-text)',
+                outline: 'none',
+                cursor: 'pointer',
+                maxWidth: '220px',
+              }}
+            >
+              <option value="ALL">All Cycles {projectFilter !== 'ALL' ? 'for Project' : ''}</option>
+              {availableCycles.map((c) => (
+                <option key={c.id} value={c.id}>
+                  Cycle #{String(c.cycleNumber || '01').padStart(2, '0')}: {c.name.split('—')[0]}
+                </option>
+              ))}
+            </select>
+
+            {/* Status / Workflow Dropdown */}
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              style={{
+                height: '32px',
+                fontSize: '12px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                background: '#ffffff',
+                fontWeight: '600',
+                color: 'var(--color-text)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="ALL">All Statuses ({counts.all})</option>
+              <option value="NEEDS_ACTION">Needs Action ({counts.needsAction})</option>
+              <option value="IN_PROGRESS">In Progress ({counts.inProgress})</option>
+              <option value="FIXED">Fixed / Retest ({counts.fixed})</option>
+              <option value="CRITICAL">Critical P1 ({counts.critical})</option>
+            </select>
+
+            {/* Priority Filter */}
+            <select
+              value={priorityFilter}
+              onChange={(e) => {
+                setPriorityFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{
+                height: '32px',
+                fontSize: '12px',
+                padding: '0 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                background: '#ffffff',
+                fontWeight: '600',
+                color: 'var(--color-text)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="ALL">All Priorities</option>
+              <option value="P1">P1 Critical</option>
+              <option value="P2">P2 High</option>
+              <option value="P3">P3 Medium</option>
+              <option value="P4">P4 Low</option>
+            </select>
+
+            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh bugs"
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '5px 9px', height: '32px' }}
+            >
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
 
-        {/* Defects List */}
+        {/* Filter Clear Pill */}
+        {hasActiveFilters && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '14px',
+            fontSize: '11.5px',
+          }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Filtered results:</span>
+            {statusFilter !== 'ALL' && (
+              <span style={{ background: '#fef3c7', color: '#92400e', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                Status: {statusFilter === 'NEEDS_ACTION' ? 'Needs Action' : statusFilter.replace('_', ' ')}
+              </span>
+            )}
+            {projectFilter !== 'ALL' && (
+              <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                Project: {availableProjects.find((p) => p.id === projectFilter)?.key || projectFilter}
+              </span>
+            )}
+            {cycleFilter !== 'ALL' && (
+              <span style={{ background: '#ede9fe', color: '#6d28d9', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                Cycle: {availableCycles.find((c) => c.id === cycleFilter)?.name?.split('—')[0] || cycleFilter}
+              </span>
+            )}
+            {priorityFilter !== 'ALL' && (
+              <span style={{ background: '#fce7f3', color: '#be185d', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                Priority: {priorityFilter}
+              </span>
+            )}
+            {searchQuery && (
+              <span style={{ background: '#f1f5f9', color: '#334155', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                "{searchQuery}"
+              </span>
+            )}
+            <button
+              onClick={resetFilters}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            >
+              Clear All
+            </button>
+          </div>
+        )}
+
+        {/* Results Summary Count & Per Page Size Selector (Previous format) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
+          flexWrap: 'wrap',
+          gap: '10px',
+        }}>
+          <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
+            Showing {displayedBugs.length === 0 ? '0' : (currentPage - 1) * pageSize + 1}-
+            {Math.min(currentPage * pageSize, displayedBugs.length)} of {displayedBugs.length} {displayedBugs.length === 1 ? 'bug' : 'bugs'}
+            {hasActiveFilters && ` (filtered from ${assignedBugs.length} total)`}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+            <span>Per page:</span>
+            {[10, 20, 50, 100].map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '2px 7px',
+                  borderRadius: '4px',
+                  background: pageSize === size ? '#4f46e5' : '#ffffff',
+                  color: pageSize === size ? '#ffffff' : 'var(--color-text)',
+                  border: pageSize === size ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                  boxShadow: pageSize === size ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                  cursor: 'pointer',
+                  fontSize: '11.5px',
+                  fontWeight: '700',
+                }}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bugs List */}
         {loading ? (
           <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
             <div className="spinner" style={{ width: '28px', height: '28px', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Loading assigned defects...</p>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Loading bugs...</p>
           </div>
         ) : displayedBugs.length === 0 ? (
           <div className="card" style={{ padding: '44px', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: '14px' }}>
             <CheckCircle size={36} style={{ color: '#10b981', margin: '0 auto 10px' }} />
             <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>
-              No Defects Found
+              No Bugs Found
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-              No defects match your current search and filter settings.
+              No bugs match your current search and filter settings.
             </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: '12px' }}
+              >
+                Reset Filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '14px', boxShadow: 'var(--shadow-sm)' }}>
+          /* ========================================================================= */
+          /* TABLE VIEW: Developer-Friendly & High-Density                             */
+          /* ========================================================================= */
+          <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--color-border)', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)' }}>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '50px', textAlign: 'center' }}>S.No</th>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '100px' }}>Key</th>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Defect Title</th>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '110px' }}>Severity</th>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', width: '130px' }}>Status</th>
-                    <th style={{ padding: '12px 14px', fontWeight: '700', fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', textAlign: 'right', minWidth: '160px' }}>Actions</th>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', width: '50px', textAlign: 'center' }}>S.No</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', width: '90px' }}>Key</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', width: '105px' }}>Priority</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700' }}>Bug Title & Context</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', width: '100px' }}>Severity</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', width: '125px' }}>Status</th>
+                    <th style={{ padding: '10px 14px', fontWeight: '700', textAlign: 'right', minWidth: '150px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedBugs.map((bug, index) => {
                     const statusStyle = getStatusBadge(bug.status);
+                    const priorityStyle = getPriorityBadge(bug.priority);
                     const isTransitioning = transitioningBugId === bug.id;
                     const serialNumber = (currentPage - 1) * pageSize + index + 1;
 
@@ -649,25 +748,54 @@ export default function DeveloperAllBugsPage() {
                         key={bug.id}
                         style={{
                           borderBottom: '1px solid var(--color-border)',
-                          transition: 'background 0.15s ease',
+                          transition: 'background 0.12s ease',
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         {/* Serial Number */}
-                        <td style={{ padding: '14px', textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        <td style={{ padding: '11px 14px', textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
                           {serialNumber}
                         </td>
 
                         {/* Issue Key */}
-                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
-                          <Link href={`/bugs/${bug.id}`} className="ticket-badge" style={{ textDecoration: 'none' }}>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <Link
+                            href={`/bugs/${bug.id}`}
+                            style={{
+                              fontFamily: 'monospace',
+                              fontSize: '11.5px',
+                              fontWeight: '800',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              display: 'inline-block',
+                              textDecoration: 'none',
+                            }}
+                          >
                             #{bug.issueKey}
                           </Link>
                         </td>
 
-                        {/* Defect Title & Technical Area */}
-                        <td style={{ padding: '14px' }}>
+                        {/* Priority */}
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <span style={{
+                            fontSize: '10.5px',
+                            fontWeight: '700',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: priorityStyle.bg,
+                            color: priorityStyle.text,
+                            border: `1px solid ${priorityStyle.border}`,
+                          }}>
+                            {priorityStyle.label}
+                          </span>
+                        </td>
+
+                        {/* Defect Title & Technical Context */}
+                        <td style={{ padding: '11px 14px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                             <Link
                               href={`/bugs/${bug.id}`}
@@ -675,7 +803,7 @@ export default function DeveloperAllBugsPage() {
                                 fontWeight: '650',
                                 color: 'var(--color-text)',
                                 textDecoration: 'none',
-                                fontSize: '13.5px',
+                                fontSize: '13px',
                                 lineHeight: '1.3',
                               }}
                               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-primary)')}
@@ -683,9 +811,17 @@ export default function DeveloperAllBugsPage() {
                             >
                               {bug.title}
                             </Link>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11.5px', color: 'var(--color-text-muted)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
                               {bug.bugArea && (
-                                <span className={bug.bugArea === 'REGRESSION' ? 'area-pill area-pill-regression' : 'area-pill'} style={{ fontSize: '10px', padding: '1px 6px' }}>
+                                <span style={{
+                                  fontSize: '9.5px',
+                                  fontWeight: '700',
+                                  padding: '1px 5px',
+                                  borderRadius: '3px',
+                                  background: bug.bugArea === 'REGRESSION' ? '#fee2e2' : '#f1f5f9',
+                                  color: bug.bugArea === 'REGRESSION' ? '#b91c1c' : '#475569',
+                                  textTransform: 'uppercase',
+                                }}>
                                   {bug.bugArea}
                                 </span>
                               )}
@@ -715,20 +851,20 @@ export default function DeveloperAllBugsPage() {
                         </td>
 
                         {/* Severity */}
-                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
-                          <span className={`badge badge-${bug.severity.toLowerCase()}`}>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <span className={`badge badge-${bug.severity.toLowerCase()}`} style={{ fontSize: '10px', padding: '1.5px 6px' }}>
                             {bug.severity}
                           </span>
                         </td>
 
                         {/* Status */}
-                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                           <span style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            padding: '3px 9px',
-                            borderRadius: '20px',
+                            gap: '4px',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
                             fontSize: '11px',
                             fontWeight: '700',
                             background: statusStyle.bg,
@@ -741,17 +877,17 @@ export default function DeveloperAllBugsPage() {
                         </td>
 
                         {/* Actions */}
-                        <td style={{ padding: '14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                        <td style={{ padding: '11px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', justifyContent: 'flex-end' }}>
                             {(bug.status === 'ASSIGNED' || bug.status === 'NEW' || bug.status === 'REOPENED') && (
                               <button
                                 type="button"
                                 disabled={isTransitioning}
                                 onClick={() => handleDirectTransition(bug, 'IN_PROGRESS')}
                                 className="btn btn-primary btn-sm"
-                                style={{ fontSize: '11px', fontWeight: '700', padding: '4px 9px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                               >
-                                <PlayCircle size={12} />
+                                <PlayCircle size={11} />
                                 <span>{isTransitioning ? '...' : 'Start'}</span>
                               </button>
                             )}
@@ -769,13 +905,15 @@ export default function DeveloperAllBugsPage() {
                                     border: 'none',
                                     fontSize: '11px',
                                     fontWeight: '700',
-                                    padding: '4px 9px',
+                                    padding: '3px 8px',
+                                    borderRadius: '5px',
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: '4px',
+                                    gap: '3px',
+                                    cursor: 'pointer',
                                   }}
                                 >
-                                  <CheckCircle2 size={12} />
+                                  <Check size={11} />
                                   <span>{isTransitioning ? '...' : 'Fixed'}</span>
                                 </button>
                                 <button
@@ -783,20 +921,20 @@ export default function DeveloperAllBugsPage() {
                                   disabled={isTransitioning}
                                   onClick={() => openTransitionModal(bug, 'CANNOT_REPRODUCE')}
                                   className="btn btn-secondary btn-sm"
-                                  style={{ fontSize: '10.5px', padding: '4px 7px', color: '#d97706' }}
+                                  style={{ fontSize: '10.5px', padding: '3px 6px', color: '#d97706', borderRadius: '5px' }}
                                   title="Cannot Reproduce"
                                 >
-                                  <HelpCircle size={12} />
+                                  <HelpCircle size={11} />
                                 </button>
                                 <button
                                   type="button"
                                   disabled={isTransitioning}
                                   onClick={() => openTransitionModal(bug, 'REJECTED')}
                                   className="btn btn-secondary btn-sm"
-                                  style={{ fontSize: '10.5px', padding: '4px 7px', color: '#dc2626' }}
+                                  style={{ fontSize: '10.5px', padding: '3px 6px', color: '#dc2626', borderRadius: '5px' }}
                                   title="Reject"
                                 >
-                                  <XCircle size={12} />
+                                  <XCircle size={11} />
                                 </button>
                               </>
                             )}
@@ -811,10 +949,10 @@ export default function DeveloperAllBugsPage() {
                             <Link
                               href={`/bugs/${bug.id}`}
                               className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '11.5px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '5px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                             >
                               <span>Open</span>
-                              <ChevronRight size={13} />
+                              <ChevronRight size={12} />
                             </Link>
                           </div>
                         </td>
@@ -823,6 +961,103 @@ export default function DeveloperAllBugsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Scalable Full Pagination Footer (Previous format) */}
+        {displayedBugs.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '22px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--color-border)',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}>
+            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+              Page {currentPage} of {totalPages} ({displayedBugs.length} total defects)
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Prev</span>
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {paginationRange.map((page, idx) => {
+                  if (page === '...') {
+                    return (
+                      <span key={`ellipsis-${idx}`} style={{ padding: '0 6px', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        ...
+                      </span>
+                    );
+                  }
+                  const pageNum = Number(page);
+                  const isCurrent = pageNum === currentPage;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNum)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        border: isCurrent ? '1px solid #4f46e5' : '1px solid var(--color-border)',
+                        background: isCurrent ? '#4f46e5' : '#ffffff',
+                        color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                        boxShadow: isCurrent ? '0 1px 3px rgba(79, 70, 229, 0.3)' : 'none',
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: '5px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                <span>Next</span>
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
         )}

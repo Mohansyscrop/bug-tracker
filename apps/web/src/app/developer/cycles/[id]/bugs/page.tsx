@@ -20,10 +20,12 @@ import {
   AlertTriangle,
   RefreshCw,
   ExternalLink,
-  LayoutList,
   LayoutGrid,
-  ArrowUpDown,
+  List,
   Check,
+  AlertCircle,
+  X,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface TestingCycleDetail {
@@ -76,15 +78,13 @@ export default function CycleAssignedBugsPage() {
   const [cycle, setCycle] = useState<TestingCycleDetail | null>(null);
   const [assignedBugs, setAssignedBugs] = useState<BugItem[]>([]);
 
-  // High-Volume / Developer View Controls
+  // View Controls
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [activeTab, setActiveTab] = useState<'ALL' | 'IN_PROGRESS' | 'PENDING' | 'FIXED' | 'CRITICAL'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'IN_PROGRESS' | 'FIXED' | 'CRITICAL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
-  const [areaFilter, setAreaFilter] = useState('ALL');
-  const [sortBy, setSortBy] = useState<'priority' | 'newest' | 'key'>('priority');
 
-  // Pagination for 50+ bugs
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(25);
 
@@ -92,7 +92,7 @@ export default function CycleAssignedBugsPage() {
   const [transitioningBugId, setTransitioningBugId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Status transition modal with comment
+  // Status transition modal
   const [statusModalBug, setStatusModalBug] = useState<BugItem | null>(null);
   const [targetStatus, setTargetStatus] = useState<string>('');
   const [statusComment, setStatusComment] = useState('');
@@ -114,8 +114,8 @@ export default function CycleAssignedBugsPage() {
       setCycle(rawCycle);
       setAssignedBugs(bugsRes.data || []);
     } catch (err) {
-      console.error('Failed to load cycle defects', err);
-      showToast('Error loading defects for this cycle', 'error');
+      console.error('Failed to load cycle bugs', err);
+      showToast('Error loading bugs for this cycle', 'error');
     } finally {
       setLoading(false);
     }
@@ -130,55 +130,46 @@ export default function CycleAssignedBugsPage() {
     const total = assignedBugs.length;
     const inProgress = assignedBugs.filter((b) => b.status === 'IN_PROGRESS').length;
     const fixed = assignedBugs.filter((b) => b.status === 'FIXED' || b.status === 'CLOSED').length;
-    const pending = assignedBugs.filter((b) => b.status === 'ASSIGNED' || b.status === 'NEW' || b.status === 'REOPENED').length;
+    const pending = assignedBugs.filter((b) => ['NEW', 'ASSIGNED', 'REOPENED', 'CONFIRMED'].includes(b.status?.toUpperCase())).length;
     const critical = assignedBugs.filter((b) => b.priority === 'P1' || b.severity === 'CRITICAL').length;
     return { total, inProgress, fixed, pending, critical };
   }, [assignedBugs]);
 
-  // Filtered & Sorted Defects
+  // Filtered & Sorted Bugs
   const filteredBugs = useMemo(() => {
     let result = assignedBugs.filter((bug) => {
       // 1. Workflow tab filter
       if (activeTab === 'IN_PROGRESS' && bug.status !== 'IN_PROGRESS') return false;
-      if (activeTab === 'PENDING' && !['ASSIGNED', 'NEW', 'REOPENED'].includes(bug.status)) return false;
-      if (activeTab === 'FIXED' && !['FIXED', 'CLOSED'].includes(bug.status)) return false;
+      if (activeTab === 'PENDING' && !['NEW', 'ASSIGNED', 'REOPENED', 'CONFIRMED'].includes(bug.status?.toUpperCase())) return false;
+      if (activeTab === 'FIXED' && !['FIXED', 'CLOSED'].includes(bug.status?.toUpperCase())) return false;
       if (activeTab === 'CRITICAL' && bug.priority !== 'P1' && bug.severity !== 'CRITICAL') return false;
 
-      // 2. Dropdown filters
+      // 2. Priority Filter
       if (priorityFilter !== 'ALL' && bug.priority !== priorityFilter) return false;
-      if (areaFilter !== 'ALL' && bug.bugArea !== areaFilter) return false;
 
       // 3. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const mKey = bug.issueKey?.toLowerCase().includes(q);
         const mTitle = bug.title?.toLowerCase().includes(q);
-        const mArea = bug.bugArea?.toLowerCase().includes(q);
         const mDesc = bug.description?.toLowerCase().includes(q);
-        if (!mKey && !mTitle && !mArea && !mDesc) return false;
+        const mArea = bug.bugArea?.toLowerCase().includes(q);
+        if (!mKey && !mTitle && !mDesc && !mArea) return false;
       }
       return true;
     });
 
-    // 4. Sorting
+    // Default Sort: Priority (P1 first), then newest
     const priorityWeights: Record<string, number> = { P1: 1, P2: 2, P3: 3, P4: 4 };
     result.sort((a, b) => {
-      if (sortBy === 'priority') {
-        const wA = priorityWeights[a.priority] || 99;
-        const wB = priorityWeights[b.priority] || 99;
-        return wA - wB;
-      }
-      if (sortBy === 'newest') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-      if (sortBy === 'key') {
-        return a.issueKey.localeCompare(b.issueKey);
-      }
-      return 0;
+      const wA = priorityWeights[a.priority] || 99;
+      const wB = priorityWeights[b.priority] || 99;
+      if (wA !== wB) return wA - wB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     return result;
-  }, [assignedBugs, activeTab, priorityFilter, areaFilter, searchQuery, sortBy]);
+  }, [assignedBugs, activeTab, priorityFilter, searchQuery]);
 
   // Pagination calculation
   const totalItems = filteredBugs.length;
@@ -190,7 +181,7 @@ export default function CycleAssignedBugsPage() {
     return filteredBugs.slice(start, start + pageSize);
   }, [filteredBugs, currentPage, pageSize]);
 
-  // Status transitions
+  // Direct status transition
   const handleDirectTransition = async (bug: BugItem, nextStatus: string) => {
     setTransitioningBugId(bug.id);
     try {
@@ -204,12 +195,6 @@ export default function CycleAssignedBugsPage() {
     } finally {
       setTransitioningBugId(null);
     }
-  };
-
-  const openTransitionModal = (bug: BugItem, target: string) => {
-    setStatusModalBug(bug);
-    setTargetStatus(target);
-    setStatusComment('');
   };
 
   const handleModalTransitionSubmit = async (e: React.FormEvent) => {
@@ -241,12 +226,12 @@ export default function CycleAssignedBugsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'IN_PROGRESS':
-        return { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed', label: 'In Progress' };
+        return { bg: 'rgba(99, 102, 241, 0.1)', border: 'rgba(99, 102, 241, 0.25)', text: '#4f46e5', label: 'In Progress' };
       case 'ASSIGNED':
       case 'NEW':
         return { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', label: status === 'NEW' ? 'New' : 'Assigned' };
       case 'FIXED':
-        return { bg: '#ecfdf5', border: '#a7f3d0', text: '#059669', label: 'Fixed' };
+        return { bg: '#ecfdf5', border: '#a7f3d0', text: '#047857', label: 'Fixed' };
       case 'CANNOT_REPRODUCE':
         return { bg: '#fffbeb', border: '#fde68a', text: '#d97706', label: 'Cannot Reproduce' };
       case 'REJECTED':
@@ -278,18 +263,15 @@ export default function CycleAssignedBugsPage() {
   const resetAllFilters = () => {
     setActiveTab('ALL');
     setPriorityFilter('ALL');
-    setAreaFilter('ALL');
     setSearchQuery('');
-    setSortBy('priority');
     setCurrentPage(1);
   };
 
-  const hasActiveFilters =
-    activeTab !== 'ALL' || priorityFilter !== 'ALL' || areaFilter !== 'ALL' || !!searchQuery.trim();
+  const hasActiveFilters = activeTab !== 'ALL' || priorityFilter !== 'ALL' || !!searchQuery.trim();
 
   return (
     <AppLayout>
-      <div style={{ padding: '24px 32px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
+      <div style={{ padding: '20px 28px 48px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
 
         {/* Floating Toast Notification */}
         {toastMessage && (
@@ -298,25 +280,24 @@ export default function CycleAssignedBugsPage() {
             bottom: '28px',
             right: '28px',
             zIndex: 9999,
-            padding: '12px 20px',
+            padding: '12px 18px',
             borderRadius: '10px',
             background: toastMessage.type === 'success' ? '#10b981' : '#ef4444',
             color: '#ffffff',
             fontWeight: '600',
-            fontSize: '13.5px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+            fontSize: '13px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            animation: 'fadeIn 0.25s ease-out',
+            gap: '8px',
           }}>
-            {toastMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            {toastMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
             <span>{toastMessage.text}</span>
           </div>
         )}
 
-        {/* Breadcrumb Navigation */}
-        <div style={{
+        {/* Clean, Uniform Breadcrumb Navigation */}
+        <nav aria-label="Breadcrumb" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
@@ -325,20 +306,20 @@ export default function CycleAssignedBugsPage() {
           marginBottom: '16px',
         }}>
           <Link
-            href="/developer"
+            href="/developer/projects"
             style={{
               color: 'var(--color-primary)',
               textDecoration: 'none',
               fontWeight: '600',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '5px',
             }}
           >
             <ArrowLeft size={14} />
-            <span>Developer Console</span>
+            <span>Projects</span>
           </Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={13} style={{ color: 'var(--color-text-faint)' }} />
           {cycle?.projectId ? (
             <Link
               href={`/developer/projects/${cycle.projectId}/cycles`}
@@ -349,145 +330,157 @@ export default function CycleAssignedBugsPage() {
           ) : (
             <span>Cycles</span>
           )}
-          <ChevronRight size={14} />
+          <ChevronRight size={13} style={{ color: 'var(--color-text-faint)' }} />
           <span style={{ fontWeight: '600', color: 'var(--color-text)' }}>
-            {cycle?.name || 'Testing Cycle'}
+            {cycle?.name || 'Cycle'}
           </span>
-          <ChevronRight size={14} />
-          <span style={{ color: 'var(--color-text-faint)' }}>Assigned Defects</span>
-        </div>
+          <ChevronRight size={13} style={{ color: 'var(--color-text-faint)' }} />
+          <span style={{ color: 'var(--color-text-muted)' }}>Bugs</span>
+        </nav>
 
-        {/* Compact Cycle Header & Workflow Quick-Filter Tabs */}
+        {/* Cycle Header Banner */}
         <div style={{
           background: '#ffffff',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          boxShadow: 'var(--shadow-card)',
+          borderRadius: '14px',
+          padding: '16px 22px',
           border: '1px solid var(--color-border)',
-          marginBottom: '20px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          marginBottom: '16px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
         }}>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            marginBottom: '16px',
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                <span style={{
-                  fontFamily: 'monospace',
-                  fontSize: '11px',
-                  fontWeight: '800',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  background: '#f1f5f9',
-                  color: '#0f172a',
-                  border: '1px solid #e2e8f0',
-                }}>
-                  Cycle #{cycle?.cycleNumber || '01'}
-                </span>
-                <span style={{
-                  fontSize: '10.5px',
-                  fontWeight: '700',
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  textTransform: 'uppercase',
-                }}>
-                  {cycle?.type || 'FUNCTIONAL'}
-                </span>
-                <span style={{
-                  fontSize: '10.5px',
-                  fontWeight: '700',
-                  padding: '2px 7px',
-                  borderRadius: '5px',
-                  background: '#ecfdf5',
-                  color: '#047857',
-                  border: '1px solid #a7f3d0',
-                }}>
-                  Env: {cycle?.environment || 'Staging'}
-                </span>
-                <span style={{
-                  fontSize: '10.5px',
-                  fontWeight: '700',
-                  padding: '2px 8px',
-                  borderRadius: '5px',
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  border: '1px solid #bfdbfe',
-                }}>
-                  {cycle?.status?.replace('_', ' ') || 'IN PROGRESS'}
-                </span>
-              </div>
-              <h1 style={{ fontSize: '22px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                {cycle?.name || 'Cycle Defect Workbench'}
-              </h1>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <span style={{
+                fontFamily: 'monospace',
+                fontSize: '11px',
+                fontWeight: '800',
+                padding: '2px 7px',
+                borderRadius: '5px',
+                background: '#e0e7ff',
+                color: '#4338ca',
+              }}>
+                CYCLE #{String(cycle?.cycleNumber || '01').padStart(2, '0')}
+              </span>
+
+              <span style={{
+                fontSize: '10.5px',
+                fontWeight: '700',
+                padding: '1.5px 6px',
+                borderRadius: '4px',
+                background: '#ecfdf5',
+                color: '#065f46',
+                border: '1px solid #a7f3d0',
+                textTransform: 'uppercase',
+              }}>
+                {cycle?.environment || 'STAGING'}
+              </span>
+
+              <span style={{
+                fontSize: '10px',
+                fontWeight: '700',
+                padding: '1.5px 6px',
+                borderRadius: '4px',
+                background: '#f1f5f9',
+                color: '#475569',
+                textTransform: 'uppercase',
+              }}>
+                {cycle?.type || 'FUNCTIONAL'}
+              </span>
+
+              <span style={{
+                fontSize: '10.5px',
+                fontWeight: '700',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                background: 'rgba(99, 102, 241, 0.1)',
+                color: '#4f46e5',
+                border: '1px solid rgba(99, 102, 241, 0.25)',
+                textTransform: 'uppercase',
+              }}>
+                {cycle?.status?.replace('_', ' ') || 'IN PROGRESS'}
+              </span>
             </div>
 
-            <button
-              onClick={() => {
-                setLoading(true);
-                loadData();
-              }}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
-            >
-              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-              <span>Sync Defects</span>
-            </button>
+            <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+              {cycle?.name || 'Cycle Bugs'}
+            </h1>
           </div>
 
-          {/* Interactive Workflow Tabs — Clickable Quick Filters */}
+          {cycle?.description && (
+            <p style={{
+              fontSize: '12.5px',
+              color: 'var(--color-text-muted)',
+              margin: 0,
+              maxWidth: '480px',
+              lineHeight: '1.4',
+            }}>
+              {cycle.description}
+            </p>
+          )}
+        </div>
+
+        {/* UNIFIED COMPACT TOOLBAR: Segmented Tabs & Controls in 1 Single Bar */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          marginBottom: '16px',
+        }}>
+          {/* Left: Segmented Tabs */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-            paddingTop: '14px',
-            borderTop: '1px solid var(--color-border)',
+            display: 'inline-flex',
+            background: '#f1f5f9',
+            padding: '3px',
+            borderRadius: '9px',
+            gap: '3px',
+            border: '1px solid var(--color-border)',
           }}>
             {[
-              { id: 'ALL', label: 'All Defects', count: metrics.total, color: 'var(--color-text)' },
-              { id: 'IN_PROGRESS', label: 'In Progress', count: metrics.inProgress, color: '#7c3aed' },
-              { id: 'PENDING', label: 'Needs Action', count: metrics.pending, color: '#2563eb' },
-              { id: 'FIXED', label: 'Fixed / QA Retest', count: metrics.fixed, color: '#059669' },
-              { id: 'CRITICAL', label: 'Critical / P1', count: metrics.critical, color: '#dc2626' },
+              { id: 'ALL', label: 'All Bugs', count: metrics.total },
+              { id: 'PENDING', label: 'Needs Action', count: metrics.pending },
+              { id: 'IN_PROGRESS', label: 'In Progress', count: metrics.inProgress },
+              { id: 'FIXED', label: 'Fixed', count: metrics.fixed },
+              ...(metrics.critical > 0 ? [{ id: 'CRITICAL', label: 'Critical', count: metrics.critical }] : []),
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => {
                     setActiveTab(tab.id as any);
                     setCurrentPage(1);
                   }}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: isActive ? `1.5px solid ${tab.color}` : '1px solid var(--color-border)',
-                    background: isActive ? '#ffffff' : '#f8fafc',
-                    color: isActive ? tab.color : 'var(--color-text-secondary)',
-                    fontWeight: isActive ? '800' : '600',
-                    fontSize: '12.5px',
+                    padding: '5px 12px',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: isActive ? '#ffffff' : 'transparent',
+                    color: isActive ? '#1e293b' : 'var(--color-text-muted)',
+                    fontWeight: isActive ? '700' : '600',
+                    fontSize: '12px',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '7px',
-                    boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                    gap: '6px',
+                    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
                   <span>{tab.label}</span>
                   <span style={{
-                    fontSize: '11px',
-                    fontWeight: '800',
-                    padding: '1px 6px',
-                    borderRadius: '10px',
-                    background: isActive ? tab.color : '#e2e8f0',
-                    color: isActive ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '10.5px',
+                    padding: '0 5px',
+                    borderRadius: '8px',
+                    background: isActive ? (tab.id === 'CRITICAL' ? '#fee2e2' : '#e2e8f0') : 'rgba(0,0,0,0.05)',
+                    color: isActive ? (tab.id === 'CRITICAL' ? '#b91c1c' : 'inherit') : 'inherit',
+                    fontWeight: '700',
                   }}>
                     {tab.count}
                   </span>
@@ -495,86 +488,44 @@ export default function CycleAssignedBugsPage() {
               );
             })}
           </div>
-        </div>
 
-        {/* Informational banner if cycle is still in PLANNED state */}
-        {cycle?.status === 'PLANNED' && (
-          <div style={{
-            background: '#fffbeb',
-            border: '1px solid #fde68a',
-            borderRadius: '12px',
-            padding: '12px 18px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            color: '#92400e',
-            fontSize: '13px',
-          }}>
-            <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0 }} />
-            <div>
-              <span style={{ fontWeight: '700' }}>Cycle is currently in PLANNED state:</span> QA has not transitioned this testing cycle to IN PROGRESS yet.
-            </div>
-          </div>
-        )}
-
-        {/* Single-Row Compact Control & Filter Toolbar */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid var(--color-border)',
-          padding: '10px 16px',
-          marginBottom: '16px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-        }}>
-          {/* Left: Search & Filter Dropdowns */}
+          {/* Right: Search, Priority & Consistent View Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* Search Input */}
-            <div style={{ position: 'relative', width: '220px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)' }} />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              padding: '5px 10px',
+              gap: '6px',
+              width: '210px',
+            }}>
+              <Search size={13} style={{ color: 'var(--color-text-muted)' }} />
               <input
                 type="text"
+                placeholder="Search key or title..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search key or title..."
                 style={{
-                  width: '100%',
-                  paddingLeft: '32px',
-                  paddingRight: searchQuery ? '26px' : '10px',
-                  height: '32px',
-                  fontSize: '12.5px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--color-border)',
-                  background: '#f8fafc',
+                  border: 'none',
                   outline: 'none',
+                  fontSize: '12px',
+                  background: 'transparent',
                   color: 'var(--color-text)',
+                  width: '100%',
                 }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--color-text-muted)',
-                    fontSize: '11px',
-                    padding: 0,
-                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}
                 >
-                  ✕
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -587,17 +538,16 @@ export default function CycleAssignedBugsPage() {
                 setCurrentPage(1);
               }}
               style={{
-                height: '32px',
+                height: '31px',
                 fontSize: '12px',
                 padding: '0 10px',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--color-border)',
-                background: '#f8fafc',
+                background: '#ffffff',
                 fontWeight: '600',
                 color: 'var(--color-text)',
                 outline: 'none',
                 cursor: 'pointer',
-                width: '125px',
               }}
             >
               <option value="ALL">All Priorities</option>
@@ -607,229 +557,128 @@ export default function CycleAssignedBugsPage() {
               <option value="P4">P4 Low</option>
             </select>
 
-            {/* Bug Area Filter */}
-            <select
-              value={areaFilter}
-              onChange={(e) => {
-                setAreaFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              style={{
-                height: '32px',
-                fontSize: '12px',
-                padding: '0 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--color-border)',
-                background: '#f8fafc',
-                fontWeight: '600',
-                color: 'var(--color-text)',
-                outline: 'none',
-                cursor: 'pointer',
-                width: '125px',
-              }}
-            >
-              <option value="ALL">All Bug Areas</option>
-              <option value="FRONTEND">FRONTEND</option>
-              <option value="BACKEND">BACKEND</option>
-            </select>
-
-            {/* Sort Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <ArrowUpDown size={13} style={{ color: 'var(--color-text-muted)' }} />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                style={{
-                  height: '32px',
-                  fontSize: '12px',
-                  padding: '0 8px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--color-border)',
-                  background: '#f8fafc',
-                  fontWeight: '600',
-                  color: 'var(--color-text)',
-                  outline: 'none',
-                  cursor: 'pointer',
-                  width: '140px',
-                }}
-              >
-                <option value="priority">Sort: Priority (P1)</option>
-                <option value="newest">Sort: Newest</option>
-                <option value="key">Sort: Key (A-Z)</option>
-              </select>
-            </div>
-
-            {/* Reset Filters button */}
-            {hasActiveFilters && (
+            {/* EXACT UNIFORM VIEW TOGGLE: Same as Projects/Cycles pages */}
+            <div style={{
+              display: 'inline-flex',
+              background: '#f1f5f9',
+              padding: '2px',
+              borderRadius: '7px',
+              gap: '2px',
+              border: '1px solid var(--color-border)',
+            }}>
               <button
-                onClick={resetAllFilters}
+                type="button"
+                title="Card Grid View"
+                onClick={() => setViewMode('grid')}
                 style={{
-                  background: 'none',
+                  padding: '4px 8px',
+                  borderRadius: '5px',
                   border: 'none',
-                  color: '#ef4444',
-                  fontSize: '12px',
-                  fontWeight: '700',
                   cursor: 'pointer',
-                  padding: '4px 6px',
-                  textDecoration: 'underline',
+                  background: viewMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'grid' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
-                Clear Filters
+                <LayoutGrid size={14} />
               </button>
-            )}
-          </div>
-
-          {/* Right: View Mode Toggle */}
-          <div style={{
-            display: 'inline-flex',
-            background: '#f1f5f9',
-            padding: '2px',
-            borderRadius: '7px',
-            border: '1px solid var(--color-border)',
-            gap: '2px',
-          }}>
-            <button
-              type="button"
-              title="Dense Table View"
-              onClick={() => setViewMode('table')}
-              style={{
-                padding: '4px 9px',
-                borderRadius: '5px',
-                border: 'none',
-                cursor: 'pointer',
-                background: viewMode === 'table' ? '#ffffff' : 'transparent',
-                color: viewMode === 'table' ? '#1155d7' : 'var(--color-text-muted)',
-                boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '11.5px',
-                fontWeight: '700',
-              }}
-            >
-              <LayoutList size={14} />
-              <span>Table</span>
-            </button>
-            <button
-              type="button"
-              title="Card Grid View"
-              onClick={() => setViewMode('grid')}
-              style={{
-                padding: '4px 9px',
-                borderRadius: '5px',
-                border: 'none',
-                cursor: 'pointer',
-                background: viewMode === 'grid' ? '#ffffff' : 'transparent',
-                color: viewMode === 'grid' ? '#1155d7' : 'var(--color-text-muted)',
-                boxShadow: viewMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '11.5px',
-                fontWeight: '700',
-              }}
-            >
-              <LayoutGrid size={14} />
-              <span>Grid</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Results Count & Proper Alignment Showing Row (Image 1 Model) */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '14px',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}>
-          <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>
-            Showing {filteredBugs.length === 0 ? '0' : (currentPage - 1) * effectivePageSize + 1}-
-            {Math.min(currentPage * effectivePageSize, filteredBugs.length)} of {filteredBugs.length} {filteredBugs.length === 1 ? 'defect' : 'defects'}
-            {hasActiveFilters && ` (filtered from ${assignedBugs.length} total)`}
-          </div>
-
-          {/* Right: Per-Page Picker & Pagination */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              <span>Per page:</span>
-              {[25, 50, 0].map((size) => (
-                <button
-                  key={size}
-                  onClick={() => {
-                    setPageSize(size);
-                    setCurrentPage(1);
-                  }}
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: pageSize === size ? 'linear-gradient(135deg, #1d68f2 0%, #1155d7 100%)' : '#ffffff',
-                    color: pageSize === size ? '#ffffff' : 'var(--color-text)',
-                    border: pageSize === size ? '1px solid #1155d7' : '1px solid var(--color-border)',
-                    boxShadow: pageSize === size ? '0 2px 6px rgba(17, 85, 215, 0.35)' : 'none',
-                    cursor: 'pointer',
-                    fontSize: '11.5px',
-                    fontWeight: '700',
-                  }}
-                >
-                  {size === 0 ? 'All' : size}
-                </button>
-              ))}
+              <button
+                type="button"
+                title="Compact Table View"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'table' ? '#ffffff' : 'transparent',
+                  color: viewMode === 'table' ? '#4f46e5' : 'var(--color-text-muted)',
+                  boxShadow: viewMode === 'table' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <List size={14} />
+              </button>
             </div>
 
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="btn btn-secondary btn-sm"
-                  style={{ height: '28px', padding: '0 8px', fontSize: '12px', opacity: currentPage === 1 ? 0.4 : 1 }}
-                >
-                  <ChevronLeft size={13} />
-                  <span>Prev</span>
-                </button>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', padding: '0 4px' }}>
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage >= totalPages}
-                  className="btn btn-secondary btn-sm"
-                  style={{ height: '28px', padding: '0 8px', fontSize: '12px', opacity: currentPage >= totalPages ? 0.4 : 1 }}
-                >
-                  <span>Next</span>
-                  <ChevronRight size={13} />
-                </button>
-              </div>
-            )}
+            {/* Refresh Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                loadData();
+              }}
+              disabled={loading}
+              title="Refresh bugs"
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '5px 8px', height: '31px' }}
+            >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
 
-        {/* Content: Loading, Empty, High-Density Table, or Card Grid */}
+        {/* Filter Clear Pill */}
+        {hasActiveFilters && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '14px',
+            fontSize: '11.5px',
+          }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Filtered results:</span>
+            {activeTab !== 'ALL' && (
+              <span style={{ background: '#fef3c7', color: '#92400e', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                {activeTab.replace('_', ' ')}
+              </span>
+            )}
+            {priorityFilter !== 'ALL' && (
+              <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                {priorityFilter}
+              </span>
+            )}
+            {searchQuery && (
+              <span style={{ background: '#f1f5f9', color: '#334155', padding: '1px 7px', borderRadius: '10px', fontWeight: '700' }}>
+                "{searchQuery}"
+              </span>
+            )}
+            <button
+              onClick={resetAllFilters}
+              style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '700', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Content: Loading, Empty, Table, or Grid */}
         {loading ? (
-          <div className="card" style={{ padding: '48px', textAlign: 'center' }}>
-            <div className="spinner" style={{ width: '28px', height: '28px', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Loading assigned defects...</p>
+          <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+            <div className="spinner" style={{ width: '28px', height: '28px', margin: '0 auto 10px' }} />
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
+              Loading cycle bugs...
+            </p>
           </div>
         ) : filteredBugs.length === 0 ? (
-          <div className="card" style={{ padding: '48px 32px', textAlign: 'center', border: '1px dashed var(--color-border)' }}>
-            <CheckCircle size={40} style={{ color: '#10b981', margin: '0 auto 12px' }} />
-            <h3 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
-              No Defects Match Filter
+          <div className="card" style={{ padding: '40px 24px', textAlign: 'center', border: '1px dashed var(--color-border)', borderRadius: '14px' }}>
+            <CheckCircle size={36} style={{ color: '#10b981', margin: '0 auto 10px' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--color-text)', margin: 0 }}>
+              No Bugs Found
             </h3>
-            <p style={{ fontSize: '13.5px', color: 'var(--color-text-muted)', marginTop: '6px', maxWidth: '420px', margin: '6px auto 0' }}>
+            <p style={{ fontSize: '12.5px', color: 'var(--color-text-muted)', marginTop: '4px', maxWidth: '420px', margin: '4px auto 0' }}>
               {assignedBugs.length === 0
-                ? 'No defects are assigned to you in this testing cycle.'
-                : 'No defects match the selected filters or search query.'}
+                ? 'No bugs are found in this testing cycle.'
+                : 'No bugs match the selected filters or search query.'}
             </p>
             {hasActiveFilters && (
               <button
                 onClick={resetAllFilters}
                 className="btn btn-secondary btn-sm"
-                style={{ marginTop: '14px' }}
+                style={{ marginTop: '12px' }}
               >
                 Reset Filters
               </button>
@@ -837,17 +686,11 @@ export default function CycleAssignedBugsPage() {
           </div>
         ) : viewMode === 'table' ? (
           /* ========================================================================= */
-          /* HIGH-DENSITY DEVELOPER TABLE VIEW: Direct Navigation to Full View Page     */
+          /* TABLE VIEW: Developer-Friendly & High-Density                             */
           /* ========================================================================= */
-          <div style={{
-            background: '#ffffff',
-            borderRadius: '14px',
-            border: '1px solid var(--color-border)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-            overflow: 'hidden',
-          }}>
+          <div className="card" style={{ padding: '0', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12.5px' }}>
                 <thead>
                   <tr style={{
                     background: '#f8fafc',
@@ -857,13 +700,13 @@ export default function CycleAssignedBugsPage() {
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                   }}>
-                    <th style={{ padding: '10px 14px', width: '55px', textAlign: 'center' }}>S.No</th>
+                    <th style={{ padding: '10px 14px', width: '50px', textAlign: 'center' }}>S.No</th>
                     <th style={{ padding: '10px 14px', width: '90px' }}>Key</th>
-                    <th style={{ padding: '10px 14px', width: '115px' }}>Priority</th>
-                    <th style={{ padding: '10px 14px', width: '95px' }}>Area</th>
-                    <th style={{ padding: '10px 14px' }}>Defect Title & Summary</th>
-                    <th style={{ padding: '10px 14px', width: '135px' }}>Status</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'right', width: '170px' }}>Actions</th>
+                    <th style={{ padding: '10px 14px', width: '110px' }}>Priority</th>
+                    <th style={{ padding: '10px 14px', width: '90px' }}>Area</th>
+                    <th style={{ padding: '10px 14px' }}>Bug Title & Summary</th>
+                    <th style={{ padding: '10px 14px', width: '130px' }}>Status</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'right', width: '150px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -888,7 +731,7 @@ export default function CycleAssignedBugsPage() {
                           {serialNumber}
                         </td>
 
-                        {/* Key - Direct Link to Full View Page */}
+                        {/* Issue Key */}
                         <td style={{ padding: '10px 14px' }}>
                           <Link
                             href={`/bugs/${bug.id}`}
@@ -896,26 +739,25 @@ export default function CycleAssignedBugsPage() {
                               fontFamily: 'monospace',
                               fontSize: '11.5px',
                               fontWeight: '800',
-                              padding: '2.5px 7px',
-                              borderRadius: '5px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
                               background: '#eff6ff',
                               color: '#1d4ed8',
                               border: '1px solid #bfdbfe',
                               display: 'inline-block',
                               textDecoration: 'none',
                             }}
-                            title="Open full view defect page"
                           >
                             {bug.issueKey}
                           </Link>
                         </td>
 
-                        {/* Priority / Severity */}
+                        {/* Priority */}
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             fontWeight: '700',
-                            padding: '2px 7px',
+                            padding: '2px 6px',
                             borderRadius: '4px',
                             background: priorityBadge.bg,
                             color: priorityBadge.text,
@@ -929,9 +771,9 @@ export default function CycleAssignedBugsPage() {
                         {/* Area */}
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{
-                            fontSize: '10.5px',
+                            fontSize: '10px',
                             fontWeight: '700',
-                            padding: '2px 6px',
+                            padding: '1.5px 5px',
                             borderRadius: '4px',
                             background: '#f1f5f9',
                             color: '#334155',
@@ -941,30 +783,26 @@ export default function CycleAssignedBugsPage() {
                           </span>
                         </td>
 
-                        {/* Title & Description preview - Direct Link to Full View Page */}
+                        {/* Title & Preview */}
                         <td style={{ padding: '10px 14px' }}>
                           <Link
                             href={`/bugs/${bug.id}`}
                             style={{
-                              fontWeight: '750',
+                              fontWeight: '700',
                               color: 'var(--color-text)',
-                              fontSize: '13.5px',
-                              lineHeight: '1.3',
+                              fontSize: '13px',
                               textDecoration: 'none',
                               display: 'block',
                             }}
-                            onMouseEnter={(e) => (e.currentTarget.style.color = '#1155d7')}
-                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text)')}
-                            title="Click to open full view page"
                           >
                             {bug.title}
                           </Link>
                           {bug.description && (
                             <div style={{
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               color: 'var(--color-text-muted)',
                               marginTop: '2px',
-                              maxWidth: '520px',
+                              maxWidth: '480px',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -979,25 +817,24 @@ export default function CycleAssignedBugsPage() {
                           <span style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            fontSize: '11.5px',
-                            fontWeight: '750',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
+                            gap: '4px',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            padding: '2px 7px',
+                            borderRadius: '10px',
                             background: statusBadge.bg,
                             color: statusBadge.text,
                             border: `1px solid ${statusBadge.border}`,
                             whiteSpace: 'nowrap',
                           }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: statusBadge.text }} />
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: statusBadge.text }} />
                             <span>{statusBadge.label}</span>
                           </span>
                         </td>
 
-                        {/* Fast Actions & Full View Link */}
+                        {/* Actions */}
                         <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            {/* Fast direct status action */}
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                             {(bug.status === 'NEW' || bug.status === 'ASSIGNED') && (
                               <button
                                 type="button"
@@ -1005,15 +842,15 @@ export default function CycleAssignedBugsPage() {
                                 onClick={() => handleDirectTransition(bug, 'IN_PROGRESS')}
                                 className="btn btn-primary btn-sm"
                                 style={{
-                                  fontSize: '11.5px',
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  padding: '3px 7px',
+                                  borderRadius: '5px',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '4px',
+                                  gap: '3px',
                                 }}
                               >
-                                <PlayCircle size={12} />
+                                <PlayCircle size={11} />
                                 <span>Start</span>
                               </button>
                             )}
@@ -1023,10 +860,11 @@ export default function CycleAssignedBugsPage() {
                                 type="button"
                                 disabled={isTransitioning}
                                 onClick={() => handleDirectTransition(bug, 'FIXED')}
+                                className="btn btn-sm"
                                 style={{
-                                  fontSize: '11.5px',
-                                  padding: '3px 8px',
-                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  padding: '3px 7px',
+                                  borderRadius: '5px',
                                   background: '#10b981',
                                   color: '#ffffff',
                                   border: 'none',
@@ -1034,30 +872,27 @@ export default function CycleAssignedBugsPage() {
                                   fontWeight: '700',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '4px',
+                                  gap: '3px',
                                 }}
                               >
-                                <Check size={12} />
+                                <Check size={11} />
                                 <span>Fixed</span>
                               </button>
                             )}
 
-                            {/* Direct Full View Page Button */}
                             <Link
                               href={`/bugs/${bug.id}`}
                               className="btn btn-secondary btn-sm"
-                              title="Open Full Defect Record (Details, QA Discussion & Attachments)"
                               style={{
-                                padding: '3px 9px',
+                                padding: '3px 8px',
                                 fontSize: '11.5px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                textDecoration: 'none',
+                                gap: '3px',
                               }}
                             >
                               <span>Open</span>
-                              <ExternalLink size={12} />
+                              <ExternalLink size={11} />
                             </Link>
                           </div>
                         </td>
@@ -1070,12 +905,12 @@ export default function CycleAssignedBugsPage() {
           </div>
         ) : (
           /* ========================================================================= */
-          /* COMPACT CARD GRID VIEW: Direct Navigation to Full View Page               */
+          /* GRID VIEW: Compact, High-Density Developer Cards                          */
           /* ========================================================================= */
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-            gap: '14px',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '16px',
           }}>
             {paginatedBugs.map((bug) => {
               const statusBadge = getStatusBadge(bug.status);
@@ -1090,7 +925,7 @@ export default function CycleAssignedBugsPage() {
                     padding: '16px 18px',
                     borderRadius: '12px',
                     border: '1px solid var(--color-border)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -1121,7 +956,7 @@ export default function CycleAssignedBugsPage() {
                         <span style={{
                           fontSize: '10.5px',
                           fontWeight: '700',
-                          padding: '2px 6px',
+                          padding: '1.5px 6px',
                           borderRadius: '4px',
                           background: priorityBadge.bg,
                           color: priorityBadge.text,
@@ -1132,7 +967,7 @@ export default function CycleAssignedBugsPage() {
                           <span style={{
                             fontSize: '10px',
                             fontWeight: '700',
-                            padding: '2px 5px',
+                            padding: '1.5px 5px',
                             borderRadius: '4px',
                             background: '#f1f5f9',
                             color: '#475569',
@@ -1144,7 +979,7 @@ export default function CycleAssignedBugsPage() {
                       </div>
 
                       <span style={{
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: '700',
                         padding: '2px 7px',
                         borderRadius: '10px',
@@ -1156,7 +991,7 @@ export default function CycleAssignedBugsPage() {
                       </span>
                     </div>
 
-                    {/* Title & Preview - Links directly to full view */}
+                    {/* Title & Preview */}
                     <Link
                       href={`/bugs/${bug.id}`}
                       style={{
@@ -1168,8 +1003,6 @@ export default function CycleAssignedBugsPage() {
                         textDecoration: 'none',
                         display: 'block',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#1155d7')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text)')}
                     >
                       {bug.title}
                     </Link>
@@ -1222,7 +1055,7 @@ export default function CycleAssignedBugsPage() {
                           className="btn btn-primary btn-sm"
                           style={{ fontSize: '11px', padding: '3px 8px' }}
                         >
-                          Start Progress
+                          Start
                         </button>
                       )}
 
@@ -1231,6 +1064,7 @@ export default function CycleAssignedBugsPage() {
                           type="button"
                           disabled={isTransitioning}
                           onClick={() => handleDirectTransition(bug, 'FIXED')}
+                          className="btn btn-sm"
                           style={{
                             fontSize: '11px',
                             padding: '3px 8px',
@@ -1242,7 +1076,7 @@ export default function CycleAssignedBugsPage() {
                             fontWeight: '700',
                           }}
                         >
-                          Mark Fixed
+                          Fixed
                         </button>
                       )}
                     </div>
@@ -1250,76 +1084,6 @@ export default function CycleAssignedBugsPage() {
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* Pagination Toolbar */}
-        {pageSize > 0 && totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: '20px',
-            padding: '12px 18px',
-            background: '#ffffff',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}>
-            <div style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({filteredBugs.length} total defects)
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button
-                type="button"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
-              >
-                <ChevronLeft size={14} />
-                <span>Previous</span>
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                .map((p, idx, arr) => (
-                  <span key={p} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    {idx > 0 && p - arr[idx - 1] > 1 && (
-                      <span style={{ padding: '0 4px', color: 'var(--color-text-muted)' }}>...</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage(p)}
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--color-border)',
-                        background: currentPage === p ? '#1155d7' : '#ffffff',
-                        color: currentPage === p ? '#ffffff' : 'var(--color-text)',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {p}
-                    </button>
-                  </span>
-                ))}
-
-              <button
-                type="button"
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
-              >
-                <span>Next</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
           </div>
         )}
 
@@ -1339,7 +1103,7 @@ export default function CycleAssignedBugsPage() {
             <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '24px', borderRadius: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '800', margin: 0 }}>
-                  Transition Defect: {statusModalBug.issueKey}
+                  Transition Bug: {statusModalBug.issueKey}
                 </h3>
                 <button onClick={() => setStatusModalBug(null)} className="btn btn-ghost btn-sm">✕</button>
               </div>
@@ -1357,7 +1121,7 @@ export default function CycleAssignedBugsPage() {
                     rows={3}
                     value={statusComment}
                     onChange={(e) => setStatusComment(e.target.value)}
-                    placeholder="Provide details why this defect cannot be reproduced or is rejected..."
+                    placeholder="Provide details why this bug cannot be reproduced or is rejected..."
                     className="input"
                     style={{ width: '100%', padding: '10px', fontSize: '13px' }}
                   />
