@@ -1,6 +1,7 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
 import Modal from '@/components/Modal';
+import TablePagination from '@/components/TablePagination';
 import { useEffect, useState, useCallback } from 'react';
 import { testingCyclesApi, bugsApi } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
@@ -38,6 +39,14 @@ export default function TestingCycleDetailPage() {
   const [activeTab, setActiveTab] = useState<'tests' | 'bugs' | 'requirements'>('tests');
   const [loading, setLoading] = useState(true);
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>('ALL');
+
+  // Defects Pagination
+  const [defectPage, setDefectPage] = useState(1);
+  const [defectPageSize, setDefectPageSize] = useState(10);
+
+  // Requirements Pagination
+  const [reqPage, setReqPage] = useState(1);
+  const [reqPageSize, setReqPageSize] = useState(10);
 
   // New Suite Modal
   const [showAddSuiteModal, setShowAddSuiteModal] = useState(false);
@@ -300,6 +309,18 @@ export default function TestingCycleDetailPage() {
     if (selectedAreaFilter === 'ALL') return true;
     return b.bugArea === selectedAreaFilter;
   });
+  const defectTotalPages = Math.max(1, Math.ceil(filteredBugs.length / defectPageSize));
+  const paginatedBugs = filteredBugs.slice(
+    (defectPage - 1) * defectPageSize,
+    defectPage * defectPageSize
+  );
+
+  const cycleRequirements = cycle.project?.requirements || [];
+  const reqTotalPages = Math.max(1, Math.ceil(cycleRequirements.length / reqPageSize));
+  const paginatedRequirements = cycleRequirements.slice(
+    (reqPage - 1) * reqPageSize,
+    reqPage * reqPageSize
+  );
 
   return (
     <AppLayout>
@@ -664,7 +685,10 @@ export default function TestingCycleDetailPage() {
               ].map((area) => (
                 <button
                   key={area}
-                  onClick={() => setSelectedAreaFilter(area)}
+                  onClick={() => {
+                    setSelectedAreaFilter(area);
+                    setDefectPage(1);
+                  }}
                   className={`btn btn-sm ${selectedAreaFilter === area ? 'btn-primary' : 'btn-secondary'}`}
                   style={{ fontSize: '11.5px', padding: '3px 8px' }}
                 >
@@ -678,8 +702,8 @@ export default function TestingCycleDetailPage() {
                 No defects logged in this technical area for this cycle.
               </div>
             ) : (
-              <div className="table-wrapper">
-                <table className="table">
+              <div className="table-wrapper" style={{ overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+                <table className="table" style={{ margin: 0 }}>
                   <thead>
                     <tr>
                       <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
@@ -693,47 +717,61 @@ export default function TestingCycleDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBugs.map((b: any, index: number) => (
-                      <tr key={b.id}>
-                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                          {index + 1}
-                        </td>
-                        <td>
-                          <Link href={`/bugs/${b.id}`} style={{ textDecoration: 'none' }}>
-                            <code>{b.issueKey}</code>
-                          </Link>
-                        </td>
-                        <td>
-                          <Link href={`/bugs/${b.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '500' }}>
-                            {b.title}
-                          </Link>
-                        </td>
-                        <td>
-                          <span className={b.bugArea === 'REGRESSION' ? 'area-pill area-pill-regression' : 'area-pill'}>
-                            {b.bugArea}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge badge-${b.severity.toLowerCase()}`}>
-                            {b.severity}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge badge-status-${b.status.toLowerCase().replace(/_/g, '-')}`}>
-                            {b.status.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
-                          {b.assignedTo?.name ?? 'Unassigned'}
-                        </td>
-                        <td style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>
-                          {b.requirement?.reqKey ? `${b.requirement.reqKey} ` : ''}
-                          {b.testCase?.testCaseKey ? `(${b.testCase.testCaseKey})` : 'Ad-hoc'}
-                        </td>
-                      </tr>
-                    ))}
+                    {paginatedBugs.map((b: any, index: number) => {
+                      const sNo = (defectPage - 1) * defectPageSize + index + 1;
+                      return (
+                        <tr key={b.id}>
+                          <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                            {sNo}
+                          </td>
+                          <td>
+                            <Link href={`/bugs/${b.id}`} style={{ textDecoration: 'none' }}>
+                              <code>{b.issueKey}</code>
+                            </Link>
+                          </td>
+                          <td>
+                            <Link href={`/bugs/${b.id}`} style={{ color: 'var(--color-text)', textDecoration: 'none', fontWeight: '500' }}>
+                              {b.title}
+                            </Link>
+                          </td>
+                          <td>
+                            <span className={b.bugArea === 'REGRESSION' ? 'area-pill area-pill-regression' : 'area-pill'}>
+                              {b.bugArea}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge badge-${b.severity.toLowerCase()}`}>
+                              {b.severity}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge badge-status-${b.status.toLowerCase().replace(/_/g, '-')}`}>
+                              {b.status.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '12.5px', color: 'var(--color-text-muted)' }}>
+                            {b.assignedTo?.name ?? 'Unassigned'}
+                          </td>
+                          <td style={{ fontSize: '11px', color: 'var(--color-text-faint)' }}>
+                            {b.requirement?.reqKey ? `${b.requirement.reqKey} ` : ''}
+                            {b.testCase?.testCaseKey ? `(${b.testCase.testCaseKey})` : 'Ad-hoc'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+
+                <TablePagination
+                  currentPage={defectPage}
+                  totalPages={defectTotalPages}
+                  pageSize={defectPageSize}
+                  totalItems={filteredBugs.length}
+                  onPageChange={setDefectPage}
+                  onPageSizeChange={setDefectPageSize}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                  itemLabel="defects"
+                />
               </div>
             )}
           </div>
@@ -759,8 +797,8 @@ export default function TestingCycleDetailPage() {
             </div>
 
             {/* Traceability Table */}
-            <div className="table-wrapper">
-              <table className="table">
+            <div className="table-wrapper" style={{ overflow: 'hidden', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
+              <table className="table" style={{ margin: 0 }}>
                 <thead>
                   <tr>
                     <th style={{ width: '55px', textAlign: 'center' }}>S.No</th>
@@ -774,76 +812,92 @@ export default function TestingCycleDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cycle.project?.requirements?.length === 0 ? (
+                  {cycleRequirements.length === 0 ? (
                     <tr>
                       <td colSpan={8} style={{ textAlign: 'center', padding: '30px', color: 'var(--color-text-muted)' }}>
                         No requirements defined yet for this project.
                       </td>
                     </tr>
                   ) : (
-                    (cycle.project?.requirements || []).map((req: any, index: number) => (
-                      <tr key={req.id}>
-                        <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-                          {index + 1}
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: '700', color: 'var(--color-accent)' }}>
-                            {req.reqKey}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{req.title}</strong>
-                          {req.description && (
-                            <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{req.description}</div>
-                          )}
-                        </td>
-                        <td>
-                          <span className="badge badge-low">
-                            {req.priority}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge badge-status-fixed">
-                            {req.status}
-                          </span>
-                        </td>
-                        <td style={{ fontSize: '12px' }}>
-                          <strong>{req.testCases?.length || 0}</strong> Scenarios
-                        </td>
-                        <td style={{ fontSize: '12px' }}>
-                          <strong style={{ color: req.bugs?.length > 0 ? 'var(--color-danger)' : 'inherit' }}>
-                            {req.bugs?.length || 0}
-                          </strong> Defects
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteRequirement(req.id, req.title)}
-                            title="Delete requirement"
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--color-text-muted)',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              borderRadius: '4px',
-                              transition: 'color 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = '#ef4444';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = 'var(--color-text-muted)';
-                            }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    paginatedRequirements.map((req: any, index: number) => {
+                      const sNo = (reqPage - 1) * reqPageSize + index + 1;
+                      return (
+                        <tr key={req.id}>
+                          <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                            {sNo}
+                          </td>
+                          <td>
+                            <span style={{ fontWeight: '700', color: 'var(--color-accent)' }}>
+                              {req.reqKey}
+                            </span>
+                          </td>
+                          <td>
+                            <strong>{req.title}</strong>
+                            {req.description && (
+                              <div style={{ fontSize: '11.5px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{req.description}</div>
+                            )}
+                          </td>
+                          <td>
+                            <span className="badge badge-low">
+                              {req.priority}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge badge-status-fixed">
+                              {req.status}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '12px' }}>
+                            <strong>{req.testCases?.length || 0}</strong> Scenarios
+                          </td>
+                          <td style={{ fontSize: '12px' }}>
+                            <strong style={{ color: req.bugs?.length > 0 ? 'var(--color-danger)' : 'inherit' }}>
+                              {req.bugs?.length || 0}
+                            </strong> Defects
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRequirement(req.id, req.title)}
+                              title="Delete requirement"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--color-text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                transition: 'color 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#ef4444';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = 'var(--color-text-muted)';
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
+
+              {cycleRequirements.length > 0 && (
+                <TablePagination
+                  currentPage={reqPage}
+                  totalPages={reqTotalPages}
+                  pageSize={reqPageSize}
+                  totalItems={cycleRequirements.length}
+                  onPageChange={setReqPage}
+                  onPageSizeChange={setReqPageSize}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                  itemLabel="requirements"
+                />
+              )}
             </div>
           </div>
         )}

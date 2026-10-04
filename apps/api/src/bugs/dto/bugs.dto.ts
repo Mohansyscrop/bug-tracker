@@ -229,7 +229,7 @@ export class BugFilterDto {
   @IsNumber()
   @IsOptional()
   @Min(1)
-  @Max(100)
+  @Max(1000)
   limit: number = 20;
 
   @IsString()

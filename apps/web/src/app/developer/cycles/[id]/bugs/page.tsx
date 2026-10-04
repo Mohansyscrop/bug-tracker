@@ -1,5 +1,6 @@
 'use client';
 import AppLayout from '@/components/AppLayout';
+import TablePagination from '@/components/TablePagination';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { bugsApi, testingCyclesApi } from '@/lib/api';
@@ -86,7 +87,7 @@ export default function CycleAssignedBugsPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   // Status transition state
   const [transitioningBugId, setTransitioningBugId] = useState<string | null>(null);
@@ -113,9 +114,9 @@ export default function CycleAssignedBugsPage() {
       const rawCycle = (cycleRes as any)?.data || cycleRes;
       setCycle(rawCycle);
       setAssignedBugs(bugsRes.data || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load cycle bugs', err);
-      showToast('Error loading bugs for this cycle', 'error');
+      showToast(err?.message || 'Error loading bugs for this cycle', 'error');
     } finally {
       setLoading(false);
     }
@@ -902,16 +903,28 @@ export default function CycleAssignedBugsPage() {
                 </tbody>
               </table>
             </div>
+
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="bugs"
+            />
           </div>
         ) : (
           /* ========================================================================= */
           /* GRID VIEW: Compact, High-Density Developer Cards                          */
           /* ========================================================================= */
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-            gap: '16px',
-          }}>
+          <>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+              gap: '16px',
+            }}>
             {paginatedBugs.map((bug) => {
               const statusBadge = getStatusBadge(bug.status);
               const priorityBadge = getPriorityBadge(bug.priority);
@@ -1085,7 +1098,21 @@ export default function CycleAssignedBugsPage() {
               );
             })}
           </div>
-        )}
+
+          <div style={{ marginTop: '16px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 20, 50, 100]}
+              itemLabel="bugs"
+            />
+          </div>
+        </>
+      )}
 
         {/* Modal: Status Transition with Comment */}
         {statusModalBug && (
